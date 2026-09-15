@@ -22,20 +22,41 @@ This package:
 - Pins the API host to `api.cursor.com`
 - Reads `CURSOR_API_KEY` from the process environment, never from git
 
-## Install (OpenClaw)
+## Install (one command)
+
+After this package is on npm:
 
 ```bash
-npm install
-npm run plugin:build
-openclaw plugins install --link .
-openclaw plugins enable cursor-cloud
+npx -y openclaw-plugin-cursor-cloud@0.1.0 setup
 ```
 
-Put the key on the **gateway** environment, not in `openclaw.json`:
+From a git checkout:
+
+```bash
+./scripts/install-gateway.sh
+```
+
+`setup` link-installs or npm-installs the plugin, enables it, enables the
+`cursor-cloud` skill, and adds `cursor-cloud` to `tools.alsoAllow`. It does
+not write API keys.
+
+Then put the key on the **gateway** environment, not in `openclaw.json`:
 
 ```bash
 # systemd EnvironmentFile, or equivalent
 CURSOR_API_KEY=...
+```
+
+Pin a host without `npx` after publish:
+
+```bash
+openclaw plugins install npm:openclaw-plugin-cursor-cloud@0.1.0 --force --accept-capabilities
+```
+
+or, once published to ClawHub:
+
+```bash
+openclaw plugins install clawhub:<org>/openclaw-plugin-cursor-cloud --accept-capabilities
 ```
 
 Plugin config (`plugins.entries.cursor-cloud.config`):
@@ -57,8 +78,8 @@ Plugin config (`plugins.entries.cursor-cloud.config`):
 See `examples/openclaw.snippet.json`. Restart or reload the gateway after install.
 
 The package ships `skills/cursor-cloud` via `"skills": ["./skills"]` in
-`openclaw.plugin.json`. Opt the optional tools (including `cursor_cloud_me`)
-into the model catalog with `tools.alsoAllow: ["cursor-cloud"]`.
+`openclaw.plugin.json`. `setup` alsoAllow-lists the plugin so optional extras
+(`list`, `models`, `ledger`) are visible too.
 
 ## Tools
 
@@ -71,8 +92,9 @@ Default (always offered):
 | `cursor_cloud_status` | `GET` agent + latest run |
 | `cursor_cloud_cancel` | `POST …/runs/{runId}/cancel` |
 | `cursor_cloud_watch` | Detached poll until terminal |
+| `cursor_cloud_me` | `GET /v1/me` (no email) |
 
-Optional (allowlist explicitly): `cursor_cloud_list`, `cursor_cloud_models`, `cursor_cloud_me`, `cursor_cloud_ledger`.
+Optional (allowlist explicitly, or via `setup`): `cursor_cloud_list`, `cursor_cloud_models`, `cursor_cloud_ledger`.
 
 Not shipped: archive, delete, artifact download URLs, GitHub repository listing.
 
@@ -115,16 +137,27 @@ Same tools, JSON-RPC stdio, no extra runtime dependency.
 - Not `@cursor/sdk` `Agent.create({ cloud: { repos } })`. Named saved envs need `env.name` on REST.
 - Not `agent worker` registration. Starting a Cloud worker on a shared guest is a tenancy decision, not a default.
 
-## Publish
+## Versioning and publish
+
+Semver lives in `package.json` and `openclaw.plugin.json`. Bump locally with:
+
+```bash
+./scripts/release.sh 0.1.1
+```
+
+Then commit, tag `v0.1.1`, and push the tag. GitHub Actions publishes npm
+(`NPM_TOKEN`) with provenance. ClawHub is still a local/operator step:
 
 ```bash
 npm test
 npm run plugin:validate
 npm pack
-# clawhub package publish . --dry-run
+clawhub package publish . --dry-run
+clawhub package publish .
 ```
 
-ClawHub is the preferred OpenClaw discovery surface; npm works as `openclaw-plugin-cursor-cloud`.
+`package.json#openclaw.install.npmSpec` is the install pin other hosts should
+use. Add `clawhubSpec` after the first ClawHub publish.
 
 ## License
 

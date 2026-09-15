@@ -1,0 +1,10 @@
+[
+  {
+    "path": "tools.alsoAllow",
+    "value": ["cursor-cloud"]
+  },
+  {
+    "path": "skills.entries.cursor-cloud",
+    "value": { "enabled": true }
+  }
+]

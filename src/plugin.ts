@@ -100,9 +100,8 @@ export default defineToolPlugin({
     tool({
       name: "cursor_cloud_me",
       label: "Cursor Cloud Auth Check",
-      description: "Check that CURSOR_API_KEY is valid. Does not return email. Optional.",
+      description: "Check that CURSOR_API_KEY is valid. Does not return email.",
       parameters: emptyParamsSchema,
-      optional: true,
       execute: (_params, config) => runTool(config, (runtime) => meAction(runtime)),
     }),
     tool({

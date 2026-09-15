@@ -3,6 +3,7 @@ export { pluginConfigSchema, resolveConfig } from "./config.js";
 export { composePrompt, proofFromRun } from "./brief.js";
 export { resolveLaunchTarget } from "./registry.js";
 export { watchRun } from "./waiter.js";
+export { setupGateway } from "./setup.js";
 export {
   cancelAction,
   launchAction,

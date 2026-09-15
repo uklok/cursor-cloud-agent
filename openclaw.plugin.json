@@ -142,11 +142,11 @@
     "cursor_cloud_models": {
       "optional": true
     },
-    "cursor_cloud_me": {
-      "optional": true
-    },
     "cursor_cloud_ledger": {
       "optional": true
     }
-  }
+  },
+  "categories": [
+    "tools"
+  ]
 }

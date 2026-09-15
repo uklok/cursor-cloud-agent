@@ -20,7 +20,6 @@ describe("cursor-cloud plugin", () => {
     expect(meta?.tools.filter((tool) => tool.optional).map((tool) => tool.name)).toEqual([
       "cursor_cloud_list",
       "cursor_cloud_models",
-      "cursor_cloud_me",
       "cursor_cloud_ledger",
     ]);
   });
