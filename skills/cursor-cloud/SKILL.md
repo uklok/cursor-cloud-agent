@@ -1,5 +1,5 @@
 ---
-name: Cursor Cloud coordinator
+name: cursor-cloud
 description: >-
   Use when an OpenClaw agent must delegate a code change, investigation, or
   merge request to a Cursor Cloud saved environment. Launch once, reply on the

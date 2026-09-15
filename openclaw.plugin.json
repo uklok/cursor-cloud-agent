@@ -116,6 +116,9 @@
     },
     "additionalProperties": false
   },
+  "skills": [
+    "./skills"
+  ],
   "activation": {
     "onStartup": true
   },

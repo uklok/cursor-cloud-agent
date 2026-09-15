@@ -56,6 +56,10 @@ Plugin config (`plugins.entries.cursor-cloud.config`):
 
 See `examples/openclaw.snippet.json`. Restart or reload the gateway after install.
 
+The package ships `skills/cursor-cloud` via `"skills": ["./skills"]` in
+`openclaw.plugin.json`. Opt the optional tools (including `cursor_cloud_me`)
+into the model catalog with `tools.alsoAllow: ["cursor-cloud"]`.
+
 ## Tools
 
 Default (always offered):
