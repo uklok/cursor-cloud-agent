@@ -1,8 +1,9 @@
 import { createInterface } from "node:readline";
 import {
+  agentsAction,
   cancelAction,
+  envsAction,
   launchAction,
-  ledgerAction,
   listAction,
   meAction,
   modelsAction,
@@ -14,8 +15,10 @@ import { formatError } from "./errors.js";
 import { loadCliConfig } from "./load-config.js";
 import { createRuntime, type Runtime } from "./runtime.js";
 import {
+  agentsParamsSchema,
   cancelParamsSchema,
   emptyParamsSchema,
+  envsParamsSchema,
   jsonSchema,
   launchParamsSchema,
   listParamsSchema,
@@ -59,6 +62,16 @@ const TOOLS = [
     inputSchema: jsonSchema(watchParamsSchema),
   },
   {
+    name: "cursor_cloud_envs",
+    description: "List registered environments. refresh harvests named envs from GET /v1/agents.",
+    inputSchema: jsonSchema(envsParamsSchema),
+  },
+  {
+    name: "cursor_cloud_agents",
+    description: "Local JSON registry of launched bc-… agents.",
+    inputSchema: jsonSchema(agentsParamsSchema),
+  },
+  {
     name: "cursor_cloud_list",
     description: "List recent Cloud agents.",
     inputSchema: jsonSchema(listParamsSchema),
@@ -70,12 +83,7 @@ const TOOLS = [
   },
   {
     name: "cursor_cloud_me",
-    description: "Check API key validity without returning email.",
-    inputSchema: jsonSchema(emptyParamsSchema),
-  },
-  {
-    name: "cursor_cloud_ledger",
-    description: "Local recent bc-… ledger.",
+    description: "First proof the API key works. Returns ok and key name, never email.",
     inputSchema: jsonSchema(emptyParamsSchema),
   },
 ];
@@ -173,8 +181,10 @@ async function invoke(runtime: Runtime, name: string, args: Record<string, unkno
       return modelsAction(runtime);
     case "cursor_cloud_me":
       return meAction(runtime);
-    case "cursor_cloud_ledger":
-      return ledgerAction(runtime);
+    case "cursor_cloud_envs":
+      return await envsAction(runtime, args as never);
+    case "cursor_cloud_agents":
+      return agentsAction(runtime, args as never);
     default:
       throw new Error(`Unknown tool '${name}'`);
   }

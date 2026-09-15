@@ -1,0 +1,31 @@
+{
+  "plugins": {
+    "entries": {
+      "cursor-cloud": {
+        "enabled": true,
+        "config": {
+          "defaultEnv": "base",
+          "envs": {
+            "base": {
+              "type": "cloud",
+              "name": "Platform Base",
+              "role": "base",
+              "workdirRule": "SSH clone the target repo to /tmp/<slug> when it is not the environment primary.",
+              "skillsPath": "~/.cursor/skills",
+              "note": "Bootstrap environment. Use a project env when that repo is already loaded."
+            },
+            "payments": {
+              "type": "cloud",
+              "name": "Payments",
+              "role": "project",
+              "project": "payments",
+              "allowRepos": ["https://github.com/acme/payments"],
+              "workdirRule": "Work in the repo already loaded on this environment.",
+              "skillsPath": "~/.cursor/skills"
+            }
+          }
+        }
+      }
+    }
+  }
+}

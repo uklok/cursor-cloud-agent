@@ -1,10 +1,13 @@
 export type EnvType = "cloud" | "pool" | "machine";
+export type EnvRole = "base" | "project";
 export type AuthScheme = "basic" | "bearer";
 export type ConversationMode = "agent" | "plan";
 
 export type EnvRecord = {
   type: EnvType;
   name: string;
+  role?: EnvRole;
+  project?: string;
   allowRepos?: string[];
   workdirRule?: string;
   skillsPath?: string;
@@ -27,6 +30,7 @@ export type PluginConfig = {
   allowReposOnLaunch?: boolean;
   watch?: Partial<WatchConfig>;
   ledgerPath?: string;
+  catalogPath?: string;
 };
 
 export type ResolvedConfig = {
@@ -38,6 +42,7 @@ export type ResolvedConfig = {
   allowReposOnLaunch: boolean;
   watch: WatchConfig;
   ledgerPath?: string;
+  catalogPath?: string;
 };
 
 export type PromptImage = {

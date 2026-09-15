@@ -10,6 +10,7 @@ describe("composePrompt", () => {
       skillsPath: "~/.cursor/skills",
     });
     expect(text).toContain("UKLOK OS");
+    expect(text).toContain("base");
     expect(text).toContain("SSH clone to /tmp/<slug>");
     expect(text).toContain("Fix issue 12");
   });

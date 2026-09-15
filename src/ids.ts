@@ -33,3 +33,15 @@ export function assertEnvId(value: string): string {
 export function sanitizeId(value: string): string {
   return value.replace(/[^A-Za-z0-9._-]/g, "_");
 }
+
+export function envIdFromName(name: string): string {
+  const slug = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  if (!slug) {
+    throw new ConfigError(`Cannot derive env registry id from name '${name}'`);
+  }
+  return assertEnvId(slug);
+}

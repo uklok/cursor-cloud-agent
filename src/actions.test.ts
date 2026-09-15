@@ -12,7 +12,7 @@ function runtime(createAgent: ReturnType<typeof vi.fn>, createRun?: ReturnType<t
       getAgent: vi.fn(),
       getRun: vi.fn(),
       cancelRun: vi.fn(),
-      listAgents: vi.fn(),
+      listAgents: vi.fn().mockResolvedValue({ items: [] }),
       listModels: vi.fn(),
       getMe: vi.fn(),
     } as never,
@@ -29,6 +29,7 @@ function runtime(createAgent: ReturnType<typeof vi.fn>, createRun?: ReturnType<t
     }),
     env: { CURSOR_API_KEY: "test" },
     ledgerPath: "/tmp/does-not-write-here-if-mocked",
+    catalogPath: "/tmp/does-not-write-catalog",
   };
 }
 

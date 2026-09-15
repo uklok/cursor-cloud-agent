@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 import { readFileSync, writeFileSync } from "node:fs";
 import {
+  agentsAction,
   cancelAction,
+  envsAction,
   launchAction,
-  ledgerAction,
   listAction,
   meAction,
   modelsAction,
@@ -53,6 +54,9 @@ async function main(argv = process.argv.slice(2)): Promise<void> {
         await launchAction(runtime, {
           prompt,
           env: str(flags.env),
+          fresh: bool(flags.fresh),
+          agentId: str(flags["agent-id"]),
+          sessionName: str(flags["session-name"]),
           name: str(flags.name),
           model: str(flags.model),
           mode: mode(flags.mode),
@@ -107,8 +111,25 @@ async function main(argv = process.argv.slice(2)): Promise<void> {
     case "me":
       printJson(await meAction(runtime));
       return;
+    case "envs":
+      printJson(
+        await envsAction(runtime, {
+          role: role(flags.role),
+          project: str(flags.project),
+          repo: str(flags.repo),
+          refresh: bool(flags.refresh),
+        }),
+      );
+      return;
+    case "agents":
     case "ledger":
-      printJson(ledgerAction(runtime));
+      printJson(
+        agentsAction(runtime, {
+          env: str(flags.env),
+          project: str(flags.project),
+          repo: str(flags.repo),
+        }),
+      );
       return;
     default:
       throw new Error(`Unknown command '${command}'. Try openclaw-cursor-cloud help.`);
@@ -180,6 +201,12 @@ function mode(value: string | boolean | undefined): "agent" | "plan" | undefined
   return undefined;
 }
 
+function role(value: string | boolean | undefined): "base" | "project" | undefined {
+  const raw = str(value);
+  if (raw === "base" || raw === "project") return raw;
+  return undefined;
+}
+
 function readPrompt(flags: Flags, rest: string[]): string {
   const file = str(flags["prompt-file"]);
   if (file) {
@@ -206,7 +233,8 @@ Commands:
   list     [--limit n]
   models
   me
-  ledger
+  envs     [--refresh] [--role base|project] [--project <key>] [--repo <https-url>]
+  agents   [--env <id>] [--project <key>] [--repo <https-url>]
   mcp
   setup    [--source link|npm|skip]
 

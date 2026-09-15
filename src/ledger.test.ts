@@ -17,5 +17,21 @@ describe("ledger", () => {
       envId: "uklok-os",
       lastRunStatus: "FINISHED",
     });
+    upsertLedger(
+      {
+        agentId: "bc-2",
+        envId: "acme-app",
+        envRole: "project",
+        project: "acme-app",
+        repo: "https://github.com/acme/app",
+      },
+      path,
+      new Date("2026-01-03"),
+    );
+    expect(readLedger(path)[0]).toMatchObject({
+      agentId: "bc-2",
+      envRole: "project",
+      repo: "https://github.com/acme/app",
+    });
   });
 });

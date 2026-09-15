@@ -76,8 +76,8 @@ export async function setupGateway(
     skillEnabled: true,
     next: [
       "Set CURSOR_API_KEY on the gateway environment (systemd EnvironmentFile), not in openclaw.json.",
-      "Set plugins.entries.cursor-cloud.config.envs / defaultEnv for each named Cloud environment.",
-      "Restart the gateway, then open a new chat so the tool catalog refreshes.",
+      "Register envs in plugins.entries.cursor-cloud.config (see examples/gateway-plugin.json).",
+      "Restart the gateway, open a new chat, then cursor_cloud_me, cursor_cloud_envs, and cursor_cloud_agents before launch.",
     ],
   };
 }

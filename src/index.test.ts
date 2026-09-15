@@ -12,15 +12,15 @@ describe("cursor-cloud plugin", () => {
       "cursor_cloud_status",
       "cursor_cloud_cancel",
       "cursor_cloud_watch",
+      "cursor_cloud_envs",
+      "cursor_cloud_agents",
       "cursor_cloud_list",
       "cursor_cloud_models",
       "cursor_cloud_me",
-      "cursor_cloud_ledger",
     ]);
     expect(meta?.tools.filter((tool) => tool.optional).map((tool) => tool.name)).toEqual([
       "cursor_cloud_list",
       "cursor_cloud_models",
-      "cursor_cloud_ledger",
     ]);
   });
 });

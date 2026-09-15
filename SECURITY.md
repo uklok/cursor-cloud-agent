@@ -23,14 +23,16 @@ auth bypass, or host-pinning failure.
    test suite with `CURSOR_CLOUD_ALLOW_INSECURE_HOST=1`.
 3. Register environments by id. The model must not invent `env.type` /
    `env.name` payloads.
-4. Treat `IDLE` as “follow-ups accepted,” not “the change is good.” Read the
-   run record for branches and PR URLs.
+4. Treat `IDLE` as “follow-ups accepted,” not “the change is good.” Read
+   `proof.prUrls` on the run record.
 5. Do not put secrets in Cloud prompts, `envVars`, issues, or notify text.
 
 ## Default blast radius
 
-Default tools: launch, reply, status, cancel, watch.
+Default tools: launch, reply, status, cancel, watch, me, envs, agents.
 
-Optional tools (must be allowlisted): list, models, me, ledger.
+Optional tools (must be allowlisted): list, models.
+
+The local agent JSON stores `bc-…` ids, env/project/repo, and run status — not API keys or prompt text.
 
 Not shipped: archive, delete, artifact download URLs, GitHub repo listing.

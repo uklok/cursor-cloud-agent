@@ -15,10 +15,23 @@ export function ensureDir(path: string): string {
   return path;
 }
 
+export function defaultAgentsPath(): string {
+  return join(stateDir(), "agents.json");
+}
+
+/** @deprecated Use defaultAgentsPath. Kept so older ledgerPath overrides still resolve. */
 export function defaultLedgerPath(): string {
+  return defaultAgentsPath();
+}
+
+export function legacyLedgerPath(): string {
   return join(stateDir(), "ledger.json");
 }
 
 export function defaultLockDir(): string {
   return join(stateDir(), "locks");
+}
+
+export function defaultEnvCatalogPath(): string {
+  return join(stateDir(), "envs.json");
 }

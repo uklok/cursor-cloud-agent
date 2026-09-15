@@ -1,163 +1,102 @@
 # openclaw-plugin-cursor-cloud
 
-OpenClaw plugin, CLI, and stdio MCP server that **delegate coding work to Cursor Cloud Agents on named saved environments**.
+OpenClaw plugin that delegates coding work to **Cursor Cloud Agents on named saved environments**. Also a CLI and stdio MCP server.
 
-The coordinator stays on your OpenClaw host. The implementer is a Cloud agent (`bc-…`). This package talks to the official [Cloud Agents API v1](https://cursor.com/docs/cloud-agent/api/endpoints). It does **not** run `agent -p` and it does **not** treat a local Cursor CLI worker as a named Cloud environment.
+**Door:** `cursor_cloud_*` tools and the `cursor-cloud` skill.  
+**Implementer:** a Cloud agent (`bc-…`).  
+**Not the door:** `agent -p` (runs here), or `repos` together with a named cloud env.
 
-## Why this exists
+Official API: [Cloud Agents API v1](https://cursor.com/docs/cloud-agent/api/endpoints). Host pin: `https://api.cursor.com`. Key: `CURSOR_API_KEY` on the gateway environment, never in git.
 
-`POST /v1/agents` can target a saved environment:
+## You are done when
 
-```json
-{ "env": { "type": "cloud", "name": "Production" } }
-```
+1. `cursor_cloud_me` (or `openclaw-cursor-cloud me`) returns `ok: true` and a key name.
+2. A **new** chat can see `cursor_cloud_launch`.
+3. `cursor_cloud_envs` lists a **base** env (clone the target) and any **project** envs (repos already loaded).
+4. `cursor_cloud_launch` with a listed id returns `agent.id` (`bc-…`) and `agent.url`. A later chat reads `cursor_cloud_agents` and replies on that id.
+5. A finished run is judged by `proof.prUrls` (or an exact blocker). `IDLE` only means follow-ups are accepted.
 
-`env` and `repos` are mutually exclusive for a named Cursor-hosted environment. Community wrappers often expose `repos` and omit `env`, then block the tool turn for up to ten minutes. That cannot target a saved env whose primary repo is not the product under change, and it is a bad fit for an OpenClaw coordinator turn.
+## Install
 
-This package:
-
-- Resolves a **registry id** → `{ type, name }` so the model cannot invent env payloads
-- **Omits `repos`** on named `cloud` environments (even when the URL is allowlisted)
-- Returns **immediately** from launch/reply; a detached waiter polls and notifies
-- Pins the API host to `api.cursor.com`
-- Reads `CURSOR_API_KEY` from the process environment, never from git
-
-## Install (one command)
-
-After this package is on npm:
+One command after npm publish:
 
 ```bash
 npx -y openclaw-plugin-cursor-cloud@0.1.0 setup
 ```
 
-From a git checkout:
+From this checkout:
 
 ```bash
 ./scripts/install-gateway.sh
 ```
 
-`setup` link-installs or npm-installs the plugin, enables it, enables the
-`cursor-cloud` skill, and adds `cursor-cloud` to `tools.alsoAllow`. It does
-not write API keys.
+`setup` installs the plugin, enables it, enables the `cursor-cloud` skill, and adds `cursor-cloud` to `tools.alsoAllow`. It does not write keys.
 
-Then put the key on the **gateway** environment, not in `openclaw.json`:
+Then:
 
 ```bash
-# systemd EnvironmentFile, or equivalent
+# gateway EnvironmentFile — not openclaw.json
 CURSOR_API_KEY=...
 ```
 
-Pin a host without `npx` after publish:
+Restart the gateway. Open a new chat. Run the first proof above.
+
+Pinned install without `npx` (still needs the key, env registry, restart, new chat):
 
 ```bash
 openclaw plugins install npm:openclaw-plugin-cursor-cloud@0.1.0 --force --accept-capabilities
 ```
 
-or, once published to ClawHub:
+After a ClawHub publish, use `clawhub:<org>/openclaw-plugin-cursor-cloud` the same way.
 
-```bash
-openclaw plugins install clawhub:<org>/openclaw-plugin-cursor-cloud --accept-capabilities
-```
+## Register an environment
 
-Plugin config (`plugins.entries.cursor-cloud.config`):
+The model passes a **registry id** (`env: "payments"`), never an invented `{ type, name }`.
 
-```json
-{
-  "defaultEnv": "prod",
-  "envs": {
-    "prod": {
-      "type": "cloud",
-      "name": "Production",
-      "workdirRule": "SSH clone the target repo to /tmp/<slug> when it is not the environment primary.",
-      "skillsPath": "~/.cursor/skills"
-    }
-  }
-}
-```
+- **base** — bootstrap env. Clone the target when it is not the env primary.
+- **project** — repos already loaded and prepared. Set `allowRepos` to those URLs and a `project` key.
 
-See `examples/openclaw.snippet.json`. Restart or reload the gateway after install.
+Plugin init (gateway startup service) harvests named environments from documented `GET /v1/agents` + `GET /v1/agents/{id}` into `~/.local/state/openclaw-cursor-cloud/envs.json`. Official v1 has no environment-list route. Unnamed dashboard fallbacks cannot be launched by `env.name` and are skipped. `cursor_cloud_envs` reads that catalog; `refresh: true` only forces a new harvest.
 
-The package ships `skills/cursor-cloud` via `"skills": ["./skills"]` in
-`openclaw.plugin.json`. `setup` alsoAllow-lists the plugin so optional extras
-(`list`, `models`, `ledger`) are visible too.
+`cursor_cloud_launch` is the placement operation. OpenClaw gives the plugin `sessionId` (new on `/new` and `/reset`, kept across compact). If this chat is already bound to a `bc-…`, launch reuses it. If the user was not explicit, launch returns `phase: choose` — ask that tree, then recall with the option's `recall` fields. The CLI skips the ask and uses `defaultEnv`.
+
+Gateway: merge `examples/gateway-plugin.json` into `plugins.entries.cursor-cloud`.  
+CLI: copy `examples/cli-config.json` to `~/.config/openclaw-cursor-cloud/config.json`.  
+Allowlist only: `examples/instance-enable.batch.json`.
+
+Named `cloud` envs omit `repos` on the wire even when `allowRepos` lists a URL.
+
+Launched `bc-…` ids are written to `~/.local/state/openclaw-cursor-cloud/agents.json` (or `$XDG_STATE_HOME/...`). That file is not git. Override with `ledgerPath` (for example `state/agents.json` in a checkout — `state/` is gitignored).
 
 ## Tools
 
-Default (always offered):
+Always on: `cursor_cloud_launch`, `cursor_cloud_reply`, `cursor_cloud_status`, `cursor_cloud_cancel`, `cursor_cloud_watch`, `cursor_cloud_me`, `cursor_cloud_envs`, `cursor_cloud_agents`.
 
-| Tool | API |
-| --- | --- |
-| `cursor_cloud_launch` | `POST /v1/agents` |
-| `cursor_cloud_reply` | `POST /v1/agents/{id}/runs` |
-| `cursor_cloud_status` | `GET` agent + latest run |
-| `cursor_cloud_cancel` | `POST …/runs/{runId}/cancel` |
-| `cursor_cloud_watch` | Detached poll until terminal |
-| `cursor_cloud_me` | `GET /v1/me` (no email) |
-
-Optional (allowlist explicitly, or via `setup`): `cursor_cloud_list`, `cursor_cloud_models`, `cursor_cloud_ledger`.
+Optional until `setup` / `tools.alsoAllow`: `cursor_cloud_list`, `cursor_cloud_models`.
 
 Not shipped: archive, delete, artifact download URLs, GitHub repository listing.
 
-`IDLE` on the durable agent means follow-ups are accepted. Success is a PR/MR URL on the run record (`proof.prUrls`).
+When to call which: `skills/cursor-cloud/SKILL.md`.
 
-## CLI
+## CLI and MCP
 
 ```bash
 export CURSOR_API_KEY=...
-cp examples/plugin-config.json ~/.config/openclaw-cursor-cloud/config.json
-
-openclaw-cursor-cloud launch --env prod --prompt "Smoke the env, then stop."
+openclaw-cursor-cloud me
+openclaw-cursor-cloud envs --refresh
+openclaw-cursor-cloud agents
+openclaw-cursor-cloud launch --env base --prompt "Smoke the env, then stop."
 openclaw-cursor-cloud reply --agent-id bc-… --prompt "Continue on the same branch."
-openclaw-cursor-cloud status --agent-id bc-…
-openclaw-cursor-cloud watch --agent-id bc-… --run-id run-…
-```
-
-Notify when a watched run finishes:
-
-```bash
-# env vars: CURSOR_CLOUD_AGENT_ID, CURSOR_CLOUD_RUN_STATUS, CURSOR_CLOUD_PR_URL, CURSOR_CLOUD_RESULT, …
-export OPENCLAW_NOTIFY=1
-# or set watch.notifyCommand in config. Safe placeholders: {agentId} {runId} {runStatus} {url} {prUrl}
-```
-
-Result text is **not** interpolated into the command line.
-
-## MCP
-
-```bash
 openclaw-cursor-cloud mcp
 ```
 
-Same tools, JSON-RPC stdio, no extra runtime dependency.
+MCP (`examples/mcp.json`) uses the same CLI config as above unless `CURSOR_CLOUD_CONFIG` is set.
 
-## What this is not
+Watch notify: `OPENCLAW_NOTIFY=1` or `watch.notifyCommand`. Safe placeholders: `{agentId} {runId} {runStatus} {url} {prUrl}`. Result text stays in `CURSOR_CLOUD_RESULT`, not the command line.
 
-- Not an official Cursor or OpenClaw package.
-- Not a wrapper around `@eyueldk/cursor-cloud-agent-mcp`. Endpoints were checked against current v1 docs and reimplemented.
-- Not `@cursor/sdk` `Agent.create({ cloud: { repos } })`. Named saved envs need `env.name` on REST.
-- Not `agent worker` registration. Starting a Cloud worker on a shared guest is a tenancy decision, not a default.
+## Versioning
 
-## Versioning and publish
-
-Semver lives in `package.json` and `openclaw.plugin.json`. Bump locally with:
-
-```bash
-./scripts/release.sh 0.1.1
-```
-
-Then commit, tag `v0.1.1`, and push the tag. GitHub Actions publishes npm
-(`NPM_TOKEN`) with provenance. ClawHub is still a local/operator step:
-
-```bash
-npm test
-npm run plugin:validate
-npm pack
-clawhub package publish . --dry-run
-clawhub package publish .
-```
-
-`package.json#openclaw.install.npmSpec` is the install pin other hosts should
-use. Add `clawhubSpec` after the first ClawHub publish.
+`package.json` and `openclaw.plugin.json` share the semver. Authors: `CONTRIBUTING.md`.
 
 ## License
 

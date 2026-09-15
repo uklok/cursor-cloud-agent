@@ -1,8 +1,9 @@
 import { defineToolPlugin } from "openclaw/plugin-sdk/tool-plugin";
 import {
+  agentsAction,
   cancelAction,
+  envsAction,
   launchAction,
-  ledgerAction,
   listAction,
   meAction,
   modelsAction,
@@ -12,16 +13,32 @@ import {
 } from "./actions.js";
 import { pluginConfigSchema } from "./config.js";
 import { formatError } from "./errors.js";
+import { registerHarvestService } from "./harvest.js";
+import type { SessionRef } from "./placement.js";
 import { createRuntime } from "./runtime.js";
 import {
+  agentsParamsSchema,
   cancelParamsSchema,
   emptyParamsSchema,
+  envsParamsSchema,
   launchParamsSchema,
   listParamsSchema,
   replyParamsSchema,
   statusParamsSchema,
   watchParamsSchema,
 } from "./tool-schemas.js";
+
+function toolResult(value: unknown, failed = false) {
+  return {
+    content: [{ type: "text" as const, text: JSON.stringify(value, null, 2) }],
+    details: value,
+    ...(failed ? { isError: true } : {}),
+  };
+}
+
+function sessionFrom(toolContext: { sessionId?: string; sessionKey?: string }): SessionRef {
+  return { sessionId: toolContext.sessionId, sessionKey: toolContext.sessionKey };
+}
 
 async function runTool<T>(
   config: unknown,
@@ -34,7 +51,7 @@ async function runTool<T>(
   }
 }
 
-export default defineToolPlugin({
+const plugin = defineToolPlugin({
   id: "cursor-cloud",
   name: "Cursor Cloud",
   description:
@@ -45,9 +62,25 @@ export default defineToolPlugin({
       name: "cursor_cloud_launch",
       label: "Cursor Cloud Launch",
       description:
-        "Create a Cursor Cloud agent on a registered environment and enqueue the first run. Pass a registry env id, never a free-form env payload. Do not pass repo unless that exact URL is in allowRepos; named cloud environments still omit repos on the wire. Returns immediately with agentId (bc-…) and runId. Follow-ups must use cursor_cloud_reply on the same agentId.",
+        "Resolve then launch or reuse a Cloud agent. If the OpenClaw session is not already bound and the user did not say fresh/reuse + env/agent, returns phase=choose — ask the user with that tree, then recall this tool with the recall fields. Do not invent env payloads.",
       parameters: launchParamsSchema,
-      execute: (params, config) => runTool(config, (runtime) => launchAction(runtime, params)),
+      factory({ config, toolContext }) {
+        return {
+          name: "cursor_cloud_launch",
+          label: "Cursor Cloud Launch",
+          description:
+            "Resolve then launch or reuse a Cloud agent. phase=choose means ask the user; do not guess.",
+          parameters: launchParamsSchema,
+          execute: async (_id: string, params: Record<string, unknown>) => {
+            try {
+              const runtime = createRuntime(config);
+              return toolResult(await launchAction(runtime, params as never, sessionFrom(toolContext)));
+            } catch (error) {
+              return toolResult(formatError(error), true);
+            }
+          },
+        };
+      },
     }),
     tool({
       name: "cursor_cloud_reply",
@@ -55,7 +88,22 @@ export default defineToolPlugin({
       description:
         "Send a follow-up prompt to an existing bc-… agent. Prefer this over launch. Returns 409 if a run is already active.",
       parameters: replyParamsSchema,
-      execute: (params, config) => runTool(config, (runtime) => replyAction(runtime, params)),
+      factory({ config, toolContext }) {
+        return {
+          name: "cursor_cloud_reply",
+          label: "Cursor Cloud Reply",
+          description: "Follow up on an existing bc-… and bind it to this OpenClaw session.",
+          parameters: replyParamsSchema,
+          execute: async (_id: string, params: Record<string, unknown>) => {
+            try {
+              const runtime = createRuntime(config);
+              return toolResult(await replyAction(runtime, params as never, sessionFrom(toolContext)));
+            } catch (error) {
+              return toolResult(formatError(error), true);
+            }
+          },
+        };
+      },
     }),
     tool({
       name: "cursor_cloud_status",
@@ -82,9 +130,25 @@ export default defineToolPlugin({
       execute: (params, config) => runTool(config, (runtime) => watchAction(runtime, params)),
     }),
     tool({
+      name: "cursor_cloud_envs",
+      label: "Cursor Cloud Envs",
+      description:
+        "List locally registered Cloud environments (filled by plugin init harvest from GET /v1/agents). refresh:true forces a new harvest. Pass a listed id to launch.",
+      parameters: envsParamsSchema,
+      execute: (params, config) => runTool(config, async (runtime) => envsAction(runtime, params)),
+    }),
+    tool({
+      name: "cursor_cloud_agents",
+      label: "Cursor Cloud Agents",
+      description:
+        "Local named sessions: bc-… agents mapped to OpenClaw sessionId. Survives compact. Prefer launch, which reuses the bound session when it can.",
+      parameters: agentsParamsSchema,
+      execute: (params, config) => runTool(config, async (runtime) => agentsAction(runtime, params)),
+    }),
+    tool({
       name: "cursor_cloud_list",
       label: "Cursor Cloud List",
-      description: "List recent Cloud agents for this API key. Optional; prefer the local ledger.",
+      description: "List recent Cloud agents for this API key. Optional; prefer cursor_cloud_agents.",
       parameters: listParamsSchema,
       optional: true,
       execute: (params, config) => runTool(config, (runtime) => listAction(runtime, params)),
@@ -100,17 +164,18 @@ export default defineToolPlugin({
     tool({
       name: "cursor_cloud_me",
       label: "Cursor Cloud Auth Check",
-      description: "Check that CURSOR_API_KEY is valid. Does not return email.",
+      description:
+        "First proof the gateway key works. Returns ok and key name, never email. Call before cursor_cloud_launch.",
       parameters: emptyParamsSchema,
       execute: (_params, config) => runTool(config, (runtime) => meAction(runtime)),
     }),
-    tool({
-      name: "cursor_cloud_ledger",
-      label: "Cursor Cloud Ledger",
-      description: "Local recent bc-… ids launched from this host. Optional.",
-      parameters: emptyParamsSchema,
-      optional: true,
-      execute: (_params, config) => runTool(config, async (runtime) => ledgerAction(runtime)),
-    }),
   ],
 });
+
+const previousRegister = plugin.register.bind(plugin);
+plugin.register = ((api: Parameters<typeof previousRegister>[0]) => {
+  previousRegister(api);
+  registerHarvestService(api);
+}) as typeof plugin.register;
+
+export default plugin;

@@ -61,6 +61,23 @@
                 "minLength": 1,
                 "description": "Saved Cursor environment, pool, or machine name (exact dashboard match)."
               },
+              "role": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "const": "base"
+                  },
+                  {
+                    "type": "string",
+                    "const": "project"
+                  }
+                ],
+                "description": "base = bootstrap env (clone the target). project = repos already loaded and prepared. Omit to infer from allowRepos."
+              },
+              "project": {
+                "type": "string",
+                "description": "Human project key used when allocating a prepared environment."
+              },
               "allowRepos": {
                 "type": "array",
                 "items": {
@@ -112,6 +129,10 @@
       },
       "ledgerPath": {
         "type": "string"
+      },
+      "catalogPath": {
+        "type": "string",
+        "description": "Local JSON of environments harvested from GET /v1/agents. Default XDG state envs.json."
       }
     },
     "additionalProperties": false
@@ -122,6 +143,9 @@
   "activation": {
     "onStartup": true
   },
+  "categories": [
+    "tools"
+  ],
   "contracts": {
     "tools": [
       "cursor_cloud_launch",
@@ -129,10 +153,11 @@
       "cursor_cloud_status",
       "cursor_cloud_cancel",
       "cursor_cloud_watch",
+      "cursor_cloud_envs",
+      "cursor_cloud_agents",
       "cursor_cloud_list",
       "cursor_cloud_models",
-      "cursor_cloud_me",
-      "cursor_cloud_ledger"
+      "cursor_cloud_me"
     ]
   },
   "toolMetadata": {
@@ -141,12 +166,6 @@
     },
     "cursor_cloud_models": {
       "optional": true
-    },
-    "cursor_cloud_ledger": {
-      "optional": true
     }
-  },
-  "categories": [
-    "tools"
-  ]
+  }
 }

@@ -4,8 +4,7 @@
       "command": "openclaw-cursor-cloud",
       "args": ["mcp"],
       "env": {
-        "CURSOR_API_KEY": "${CURSOR_API_KEY}",
-        "CURSOR_CLOUD_CONFIG": "/etc/openclaw-cursor-cloud/config.json"
+        "CURSOR_API_KEY": "${CURSOR_API_KEY}"
       }
     }
   }

@@ -1,7 +1,8 @@
 import { CursorCloudClient } from "./client.js";
 import { resolveConfig, publicConfig, type PluginConfigSchema } from "./config.js";
 import { ConfigError } from "./errors.js";
-import { defaultLedgerPath } from "./paths.js";
+import { mergeCatalogIntoConfig, readEnvCatalog } from "./env-catalog.js";
+import { defaultEnvCatalogPath, defaultLedgerPath } from "./paths.js";
 import type { PluginConfig, ResolvedConfig } from "./types.js";
 
 export type Runtime = {
@@ -9,6 +10,7 @@ export type Runtime = {
   config: ResolvedConfig;
   env: NodeJS.ProcessEnv;
   ledgerPath: string;
+  catalogPath: string;
 };
 
 export function createRuntime(
@@ -17,7 +19,9 @@ export function createRuntime(
   options: { fetch?: typeof fetch } = {},
 ): Runtime {
   const allowInsecureHost = env.CURSOR_CLOUD_ALLOW_INSECURE_HOST === "1";
-  const config = resolveConfig(raw, { allowInsecureHost });
+  const resolved = resolveConfig(raw, { allowInsecureHost });
+  const catalogPath = resolved.catalogPath || defaultEnvCatalogPath();
+  const config = mergeCatalogIntoConfig(resolved, readEnvCatalog(catalogPath));
   const apiKey = env[config.apiKeyEnv]?.trim();
   if (!apiKey) {
     throw new ConfigError(
@@ -35,6 +39,7 @@ export function createRuntime(
     config,
     env,
     ledgerPath: config.ledgerPath || defaultLedgerPath(),
+    catalogPath,
   };
 }
 

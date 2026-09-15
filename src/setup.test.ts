@@ -45,5 +45,8 @@ describe("setup helpers", () => {
     expect(result.alsoAllow).toEqual(["browser", "cursor-cloud"]);
     expect(calls.some((args) => args[0] === "config" && args[1] === "set" && args[2] === "tools.alsoAllow")).toBe(true);
     expect(calls.some((args) => args[2] === "skills.entries.cursor-cloud")).toBe(true);
+    expect(result.next.join(" ")).toContain("cursor_cloud_me");
+    expect(result.next.join(" ")).toContain("cursor_cloud_agents");
+    expect(result.next.join(" ")).toContain("examples/gateway-plugin.json");
   });
 });

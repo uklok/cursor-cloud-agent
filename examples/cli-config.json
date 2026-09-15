@@ -2,12 +2,22 @@
   "apiBaseUrl": "https://api.cursor.com",
   "authScheme": "basic",
   "apiKeyEnv": "CURSOR_API_KEY",
-  "defaultEnv": "prod",
+  "defaultEnv": "base",
   "envs": {
-    "prod": {
+    "base": {
       "type": "cloud",
-      "name": "Production",
+      "name": "Platform Base",
+      "role": "base",
       "workdirRule": "If the target repo is not this environment's primary, SSH-clone it to /tmp/<slug> and work there.",
+      "skillsPath": "~/.cursor/skills"
+    },
+    "payments": {
+      "type": "cloud",
+      "name": "Payments",
+      "role": "project",
+      "project": "payments",
+      "allowRepos": ["https://github.com/acme/payments"],
+      "workdirRule": "Use the repo already loaded on this environment.",
       "skillsPath": "~/.cursor/skills"
     },
     "workers": {

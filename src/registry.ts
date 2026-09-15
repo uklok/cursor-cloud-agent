@@ -1,6 +1,6 @@
 import { ConfigError, PolicyError } from "./errors.js";
 import { assertEnvId } from "./ids.js";
-import type { CreateAgentRequest, EnvRecord, ResolvedConfig } from "./types.js";
+import type { CreateAgentRequest, EnvRecord, EnvRole, ResolvedConfig } from "./types.js";
 
 export type LaunchRepo = {
   url: string;
@@ -51,12 +51,103 @@ export function repoAllowed(url: string, allowRepos: string[] | undefined): bool
   });
 }
 
+export function inferEnvRole(record: EnvRecord): EnvRole {
+  if (record.role === "base" || record.role === "project") {
+    return record.role;
+  }
+  return record.allowRepos && record.allowRepos.length > 0 ? "project" : "base";
+}
+
+export type ListedEnv = {
+  id: string;
+  role: EnvRole;
+  type: EnvRecord["type"];
+  name: string;
+  project?: string;
+  allowRepos: string[];
+  workdirRule?: string;
+  skillsPath?: string;
+  note?: string;
+  isDefault: boolean;
+};
+
+export function listRegisteredEnvs(
+  config: ResolvedConfig,
+  filter: { role?: EnvRole; project?: string; repo?: string } = {},
+): { items: ListedEnv[]; recommended?: string; defaultEnv?: string } {
+  const wantedRepo = filter.repo?.trim() ? normalizeRepoUrl(filter.repo) : undefined;
+  const items = Object.entries(config.envs)
+    .map(([id, record]) => toListedEnv(id, record, config.defaultEnv))
+    .filter((item) => {
+      if (filter.role && item.role !== filter.role) return false;
+      if (filter.project && item.project !== filter.project) return false;
+      if (wantedRepo && item.role === "project" && !item.allowRepos.includes(wantedRepo)) {
+        return false;
+      }
+      return true;
+    });
+  return {
+    items,
+    recommended: recommendEnvId(config, filter.repo),
+    defaultEnv: config.defaultEnv,
+  };
+}
+
+export function recommendEnvId(config: ResolvedConfig, repo?: string): string | undefined {
+  if (repo?.trim()) {
+    const allocated = allocateEnvId(config, repo);
+    if (allocated) {
+      return allocated;
+    }
+  }
+  return config.defaultEnv;
+}
+
+export function allocateEnvId(config: ResolvedConfig, repoUrl: string): string | undefined {
+  const matches = Object.entries(config.envs).filter(
+    ([, record]) => inferEnvRole(record) === "project" && repoAllowed(repoUrl, record.allowRepos),
+  );
+  if (matches.length === 1) {
+    return matches[0][0];
+  }
+  if (matches.length > 1) {
+    const ids = matches.map(([id]) => id);
+    if (config.defaultEnv && ids.includes(config.defaultEnv)) {
+      return config.defaultEnv;
+    }
+    throw new ConfigError(`Repo matches multiple project envs: ${ids.join(", ")}. Pass env.`);
+  }
+  return undefined;
+}
+
+function toListedEnv(id: string, record: EnvRecord, defaultEnv?: string): ListedEnv {
+  return {
+    id,
+    role: inferEnvRole(record),
+    type: record.type,
+    name: record.name,
+    project: record.project,
+    allowRepos: (record.allowRepos ?? []).map((url) => {
+      try {
+        return normalizeRepoUrl(url);
+      } catch {
+        return url;
+      }
+    }),
+    workdirRule: record.workdirRule,
+    skillsPath: record.skillsPath,
+    note: record.note,
+    isDefault: defaultEnv === id,
+  };
+}
+
 export function resolveLaunchTarget(
   config: ResolvedConfig,
   envId: string | undefined,
   repo?: LaunchRepo,
 ): LaunchTarget {
-  const rawId = envId?.trim() || config.defaultEnv;
+  const allocated = !envId?.trim() && repo?.url ? allocateEnvId(config, repo.url) : undefined;
+  const rawId = envId?.trim() || allocated || config.defaultEnv;
   if (!rawId) {
     throw new ConfigError(
       `Launch needs an env registry id. Known: ${knownEnvIds(config)}. Set defaultEnv or pass env.`,

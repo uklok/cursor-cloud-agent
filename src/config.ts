@@ -12,6 +12,17 @@ export const envRecordSchema = Type.Object(
       minLength: 1,
       description: "Saved Cursor environment, pool, or machine name (exact dashboard match).",
     }),
+    role: Type.Optional(
+      Type.Union([Type.Literal("base"), Type.Literal("project")], {
+        description:
+          "base = bootstrap env (clone the target). project = repos already loaded and prepared. Omit to infer from allowRepos.",
+      }),
+    ),
+    project: Type.Optional(
+      Type.String({
+        description: "Human project key used when allocating a prepared environment.",
+      }),
+    ),
     allowRepos: Type.Optional(
       Type.Array(
         Type.String({
@@ -71,6 +82,11 @@ export const pluginConfigSchema = Type.Object(
       ),
     ),
     ledgerPath: Type.Optional(Type.String()),
+    catalogPath: Type.Optional(
+      Type.String({
+        description: "Local JSON of environments harvested from GET /v1/agents. Default XDG state envs.json.",
+      }),
+    ),
   },
   { additionalProperties: false },
 );
@@ -97,6 +113,8 @@ export function resolveConfig(
     envs[envId] = {
       type: record.type,
       name: record.name.trim(),
+      role: record.role,
+      project: record.project?.trim() || undefined,
       allowRepos: record.allowRepos?.map((url) => url.trim()).filter(Boolean),
       workdirRule: record.workdirRule?.trim() || undefined,
       skillsPath: record.skillsPath?.trim() || undefined,
@@ -131,6 +149,7 @@ export function resolveConfig(
     allowReposOnLaunch: config.allowReposOnLaunch === true,
     watch,
     ledgerPath: config.ledgerPath?.trim() || undefined,
+    catalogPath: config.catalogPath?.trim() || undefined,
   };
 }
 
@@ -144,5 +163,6 @@ export function publicConfig(config: ResolvedConfig): PluginConfig {
     allowReposOnLaunch: config.allowReposOnLaunch,
     watch: config.watch,
     ledgerPath: config.ledgerPath,
+    catalogPath: config.catalogPath,
   };
 }
