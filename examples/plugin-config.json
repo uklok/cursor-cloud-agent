@@ -1,0 +1,24 @@
+{
+  "apiBaseUrl": "https://api.cursor.com",
+  "authScheme": "basic",
+  "apiKeyEnv": "CURSOR_API_KEY",
+  "defaultEnv": "prod",
+  "envs": {
+    "prod": {
+      "type": "cloud",
+      "name": "Production",
+      "workdirRule": "If the target repo is not this environment's primary, SSH-clone it to /tmp/<slug> and work there.",
+      "skillsPath": "~/.cursor/skills"
+    },
+    "workers": {
+      "type": "pool",
+      "name": "default",
+      "note": "Self-hosted workers. Do not point a worker at a shared tenant socket until that is an explicit decision."
+    }
+  },
+  "watch": {
+    "pollIntervalMs": 15000,
+    "timeoutMs": 2700000,
+    "maxPollIntervalMs": 60000
+  }
+}

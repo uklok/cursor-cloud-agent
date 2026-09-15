@@ -1,0 +1,66 @@
+{
+  "name": "openclaw-plugin-cursor-cloud",
+  "version": "0.1.0",
+  "description": "OpenClaw plugin and CLI that launch Cursor Cloud Agents on named saved environments — without running the coding work on the coordinator host.",
+  "type": "module",
+  "license": "MIT",
+  "keywords": [
+    "openclaw",
+    "plugin",
+    "cursor",
+    "cloud-agents",
+    "clawhub",
+    "mcp"
+  ],
+  "engines": {
+    "node": ">=22.22.3"
+  },
+  "bin": {
+    "openclaw-cursor-cloud": "./dist/cli.js"
+  },
+  "exports": {
+    ".": "./dist/index.js",
+    "./client": "./dist/client.js",
+    "./mcp": "./dist/mcp.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node -e \"require('fs').chmodSync('dist/cli.js', 0o755)\"",
+    "plugin:build": "npm run build && openclaw plugins build --entry ./dist/index.js",
+    "plugin:validate": "npm run build && openclaw plugins validate --entry ./dist/index.js",
+    "test": "vitest run --config ./vitest.config.ts",
+    "prepack": "npm run plugin:build"
+  },
+  "files": [
+    "dist",
+    "openclaw.plugin.json",
+    "README.md",
+    "LICENSE",
+    "SECURITY.md",
+    "skills",
+    "examples"
+  ],
+  "peerDependencies": {
+    "openclaw": ">=2026.5.17"
+  },
+  "dependencies": {
+    "typebox": "^1.1.38"
+  },
+  "devDependencies": {
+    "@types/node": "^24.5.2",
+    "openclaw": "2026.9.2",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  },
+  "openclaw": {
+    "extensions": [
+      "./dist/index.js"
+    ],
+    "compat": {
+      "pluginApi": ">=2026.5.17",
+      "minGatewayVersion": "2026.5.17"
+    },
+    "build": {
+      "openclawVersion": "2026.9.2"
+    }
+  }
+}

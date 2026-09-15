@@ -1,0 +1,149 @@
+{
+  "id": "cursor-cloud",
+  "name": "Cursor Cloud",
+  "description": "Launch and coordinate Cursor Cloud Agents on named saved environments. Does not run coding work on the OpenClaw host.",
+  "version": "0.1.0",
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "apiBaseUrl": {
+        "type": "string",
+        "description": "Pinned Cursor API origin. Default https://api.cursor.com."
+      },
+      "authScheme": {
+        "anyOf": [
+          {
+            "type": "string",
+            "const": "basic"
+          },
+          {
+            "type": "string",
+            "const": "bearer"
+          }
+        ]
+      },
+      "apiKeyEnv": {
+        "type": "string",
+        "description": "Environment variable that holds the Cursor API key. Default CURSOR_API_KEY."
+      },
+      "defaultEnv": {
+        "type": "string",
+        "description": "Registry id used when launch omits env."
+      },
+      "envs": {
+        "type": "object",
+        "patternProperties": {
+          "^.*$": {
+            "type": "object",
+            "required": [
+              "type",
+              "name"
+            ],
+            "properties": {
+              "type": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "const": "cloud"
+                  },
+                  {
+                    "type": "string",
+                    "const": "pool"
+                  },
+                  {
+                    "type": "string",
+                    "const": "machine"
+                  }
+                ]
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Saved Cursor environment, pool, or machine name (exact dashboard match)."
+              },
+              "allowRepos": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "description": "Exact repo URL already listed on this environment."
+                }
+              },
+              "workdirRule": {
+                "type": "string",
+                "description": "How the Cloud agent should place work when the env primary repo is not the target."
+              },
+              "skillsPath": {
+                "type": "string",
+                "description": "Org skills path inside the environment."
+              },
+              "note": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "allowReposOnLaunch": {
+        "type": "boolean",
+        "description": "Allow a repo URL on pool/machine launches even when the env has no allowRepos. Default false."
+      },
+      "watch": {
+        "type": "object",
+        "properties": {
+          "pollIntervalMs": {
+            "type": "integer",
+            "minimum": 1000
+          },
+          "timeoutMs": {
+            "type": "integer",
+            "minimum": 1000
+          },
+          "maxPollIntervalMs": {
+            "type": "integer",
+            "minimum": 1000
+          },
+          "notifyCommand": {
+            "type": "string",
+            "description": "Shell command run when a watched run becomes terminal. Safe placeholders: {agentId} {runId} {runStatus} {url} {prUrl}. Result text is passed via CURSOR_CLOUD_RESULT."
+          }
+        },
+        "additionalProperties": false
+      },
+      "ledgerPath": {
+        "type": "string"
+      }
+    },
+    "additionalProperties": false
+  },
+  "activation": {
+    "onStartup": true
+  },
+  "contracts": {
+    "tools": [
+      "cursor_cloud_launch",
+      "cursor_cloud_reply",
+      "cursor_cloud_status",
+      "cursor_cloud_cancel",
+      "cursor_cloud_watch",
+      "cursor_cloud_list",
+      "cursor_cloud_models",
+      "cursor_cloud_me",
+      "cursor_cloud_ledger"
+    ]
+  },
+  "toolMetadata": {
+    "cursor_cloud_list": {
+      "optional": true
+    },
+    "cursor_cloud_models": {
+      "optional": true
+    },
+    "cursor_cloud_me": {
+      "optional": true
+    },
+    "cursor_cloud_ledger": {
+      "optional": true
+    }
+  }
+}
