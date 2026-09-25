@@ -21,7 +21,8 @@ instead.
 2. `cursor_cloud_envs` lists the catalog filled at **plugin init** (GET /v1/agents harvest; v1 has no `/environments` route). Do not run a shell to populate it.
 3. `cursor_cloud_launch` with the user prompt. Do not pass `fresh`/`env`/`agentId` unless the user already chose.
 4. If the result `phase` is `choose`, ask the user `ask.question` and the `ask.options` labels. Then recall `cursor_cloud_launch` with that option's `recall` fields.
-5. When `phase` is `launched` or `reused`, give the human `agent.id` (`bc-…`) and `agent.url`. Do not wait in this turn.
+5. When `phase` is `launched` or `reused`, give the human `agent.id` (`bc-…`) and `agent.url`. Do not wait in this turn. Watch notify is not the transcript.
+6. For Grok 4.6 Med: `model=grok-4.6` and `effort=med`. Optional `fast=true|false` (omit = Cursor default). `cursor_cloud_models` lists parameters/variants.
 
 ## Placement (plugin-owned)
 
@@ -51,9 +52,10 @@ Do not invent `{ type, name }` or a `bc-…`.
 
 1. Pass a registry env id from `ask.envs` / `cursor_cloud_envs`. Never invent `{ type, name }`.
 2. Pass `repo` only when that URL is in `allowRepos`. Named cloud envs still omit `repos` on the API.
-3. Follow-ups: same `bc-…`. Launch only after the user chose fresh.
+3. Follow-ups: `cursor_cloud_reply` with the new user text only. Same `bc-…`. Never rewrite the launch prompt. If you pass `model`/`effort`/`fast`, the tool fails `model_locked`.
 4. No secrets in prompts. Local JSON stores ids and session labels, not prompt text.
-5. Do not block a tool turn waiting for Cloud.
+5. Do not block a tool turn waiting for Cloud. Do not treat watch as the result.
+6. `cursor_cloud_agents` is empty until this plugin launches a `bc-…`. `cursor_cloud_list` is account history. Harvest skips unnamed envs. `IDLE` is not success.
 
 ## Prompt (every real run)
 
@@ -64,3 +66,4 @@ In this order: role; repo HTTPS + preferred SSH + starting ref; workdir rule; is
 - The human has `agent.id` (`bc-…`) and `agent.url`.
 - Completion leads with `proof.prUrls` or an exact blocker. `IDLE` is not success.
 - Later nudges reused the same id, including after compact.
+- Proof of a finished turn comes from `cursor_cloud_status`: `run.result` (final), `run.resultPartial` / `messages[]`, `artifacts[]`, `resolved`.

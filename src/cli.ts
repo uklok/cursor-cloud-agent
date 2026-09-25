@@ -59,6 +59,8 @@ async function main(argv = process.argv.slice(2)): Promise<void> {
           sessionName: str(flags["session-name"]),
           name: str(flags.name),
           model: str(flags.model),
+          effort: str(flags.effort),
+          fast: bool(flags.fast),
           mode: mode(flags.mode),
           repo: str(flags.repo),
           startingRef: str(flags["starting-ref"]),
@@ -74,6 +76,9 @@ async function main(argv = process.argv.slice(2)): Promise<void> {
           agentId: required(flags, "agent-id"),
           prompt,
           mode: mode(flags.mode),
+          model: str(flags.model),
+          effort: str(flags.effort),
+          fast: bool(flags.fast),
           watch: flags.watch === undefined ? true : Boolean(flags.watch),
         }),
       );
@@ -225,8 +230,8 @@ function printHelp(): void {
     `openclaw-cursor-cloud ${VERSION}
 
 Commands:
-  launch   --env <id> --prompt <text> [--name] [--model] [--repo] [--watch]
-  reply    --agent-id bc-… --prompt <text> [--watch]
+  launch   --env <id> --prompt <text> [--name] [--model] [--effort low|med|high] [--fast] [--repo] [--watch]
+  reply    --agent-id bc-… --prompt <text> [--mode] [--watch]
   status   --agent-id bc-… [--run-id run-…]
   cancel   --agent-id bc-… [--run-id run-…]
   watch    --agent-id bc-… [--run-id run-…]

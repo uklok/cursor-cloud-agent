@@ -26,6 +26,18 @@ export class TimeoutError extends CursorCloudError {
   }
 }
 
+export class ModelLockedError extends CursorCloudError {
+  constructor(message: string, options?: ErrorOptions) {
+    super("model_locked", message, options);
+  }
+}
+
+export class FollowUpError extends CursorCloudError {
+  constructor(message: string, options?: ErrorOptions) {
+    super("follow_up_rejected", message, options);
+  }
+}
+
 export class CursorCloudApiError extends CursorCloudError {
   readonly httpStatus: number;
   readonly apiCode?: string;

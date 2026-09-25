@@ -43,12 +43,12 @@ const TOOLS = [
   },
   {
     name: "cursor_cloud_reply",
-    description: "Follow up on an existing bc-… agent.",
+    description: "Post a new user message on an existing bc-…. Never rewrites the launch prompt.",
     inputSchema: jsonSchema(replyParamsSchema),
   },
   {
     name: "cursor_cloud_status",
-    description: "Read agent lifecycle and the latest run.",
+    description: "Read lifecycle, final/partial result, messages, artifacts, and resolved model.",
     inputSchema: jsonSchema(statusParamsSchema),
   },
   {
@@ -58,7 +58,7 @@ const TOOLS = [
   },
   {
     name: "cursor_cloud_watch",
-    description: "Start a detached waiter. Returns immediately.",
+    description: "Start a detached waiter that notifies the originating session. Not the transcript.",
     inputSchema: jsonSchema(watchParamsSchema),
   },
   {
@@ -78,7 +78,7 @@ const TOOLS = [
   },
   {
     name: "cursor_cloud_models",
-    description: "List Cloud model ids.",
+    description: "List Cloud model ids, parameters (effort/fast), and variants.",
     inputSchema: jsonSchema(emptyParamsSchema),
   },
   {

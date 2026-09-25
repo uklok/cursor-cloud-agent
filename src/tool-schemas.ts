@@ -1,6 +1,16 @@
 import { Type } from "typebox";
 
 const mode = Type.Optional(Type.Union([Type.Literal("agent"), Type.Literal("plan")]));
+const effort = Type.Optional(
+  Type.Union([Type.Literal("low"), Type.Literal("med"), Type.Literal("high")], {
+    description: "Reasoning effort. grok-4.6 + effort=med must be sent as model.params, not a separate model id.",
+  }),
+);
+const fast = Type.Optional(
+  Type.Boolean({
+    description: "Cursor fast toggle (model.params id=fast). Omit to use Cursor's default. Echoed in status.resolved.",
+  }),
+);
 
 export const launchParamsSchema = Type.Object(
   {
@@ -31,7 +41,9 @@ export const launchParamsSchema = Type.Object(
       }),
     ),
     name: Type.Optional(Type.String({ maxLength: 100, description: "Display name for the durable agent." })),
-    model: Type.Optional(Type.String({ description: "Model id from cursor_cloud_models. Omit for the account default." })),
+    model: Type.Optional(Type.String({ description: "Model id from cursor_cloud_models (for example grok-4.6). Omit for the account default." })),
+    effort,
+    fast,
     mode,
     repo: Type.Optional(
       Type.String({
@@ -43,7 +55,8 @@ export const launchParamsSchema = Type.Object(
     autoCreatePR: Type.Optional(Type.Boolean()),
     watch: Type.Optional(
       Type.Boolean({
-        description: "Start a detached waiter that notifies on terminal status. Default true.",
+        description:
+          "Start a detached waiter that notifies the originating OpenClaw session when the run is terminal. Default true. Watch is not the transcript — poll cursor_cloud_status.",
       }),
     ),
     idempotencyKey: Type.Optional(Type.String()),
@@ -54,8 +67,18 @@ export const launchParamsSchema = Type.Object(
 export const replyParamsSchema = Type.Object(
   {
     agentId: Type.String({ description: "Existing bc-… agent id." }),
-    prompt: Type.String({ minLength: 1 }),
+    prompt: Type.String({
+      minLength: 1,
+      description: "New user message on the existing bc-…. Never a rewrite of the launch prompt.",
+    }),
     mode,
+    model: Type.Optional(
+      Type.String({
+        description: "Not accepted mid-agent. If set, the tool fails with model_locked.",
+      }),
+    ),
+    effort,
+    fast,
     watch: Type.Optional(Type.Boolean()),
   },
   { additionalProperties: false },

@@ -1,6 +1,8 @@
 export { CursorCloudClient } from "./client.js";
 export { pluginConfigSchema, resolveConfig } from "./config.js";
 export { composePrompt, proofFromRun } from "./brief.js";
+export { resolveModelSelection } from "./model.js";
+export { FollowUpError, ModelLockedError } from "./errors.js";
 export { registerHarvestService, ensureHarvested } from "./harvest.js";
 export { resolvePlacement } from "./placement.js";
 export { catalogFromAgents, fetchEnvCatalog, mergeCatalogIntoConfig } from "./env-catalog.js";

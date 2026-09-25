@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { launchAction, replyAction } from "./actions.js";
-import { PolicyError } from "./errors.js";
+import { ModelLockedError, PolicyError } from "./errors.js";
 import type { Runtime } from "./runtime.js";
 import { resolveConfig } from "./config.js";
 
@@ -9,11 +9,25 @@ function runtime(createAgent: ReturnType<typeof vi.fn>, createRun?: ReturnType<t
     client: {
       createAgent,
       createRun: createRun ?? vi.fn(),
-      getAgent: vi.fn(),
+      getAgent: vi.fn().mockResolvedValue({
+        id: "bc-00000000-0000-0000-0000-000000000001",
+        latestRunId: "run-1",
+      }),
       getRun: vi.fn(),
       cancelRun: vi.fn(),
       listAgents: vi.fn().mockResolvedValue({ items: [] }),
-      listModels: vi.fn(),
+      listModels: vi.fn().mockResolvedValue({
+        items: [
+          {
+            id: "grok-4.6",
+            parameters: [
+              { id: "effort", values: [{ value: "low" }, { value: "med" }, { value: "high" }] },
+              { id: "fast", values: [{ value: "true" }, { value: "false" }] },
+            ],
+          },
+        ],
+      }),
+      listArtifacts: vi.fn().mockResolvedValue({ items: [] }),
       getMe: vi.fn(),
     } as never,
     config: resolveConfig({
@@ -58,6 +72,28 @@ describe("launchAction", () => {
     expect(result.ok).toBe(true);
   });
 
+  it("sends effort and fast as model.params", async () => {
+    const createAgent = vi.fn().mockResolvedValue({
+      agent: { id: "bc-1", url: "https://cursor.com/agents/bc-1", latestRunId: "run-1" },
+      run: { id: "run-1", status: "CREATING" },
+    });
+    vi.spyOn(await import("./ledger.js"), "upsertLedger").mockReturnValue([]);
+    await launchAction(runtime(createAgent), {
+      prompt: "Plan it",
+      model: "grok-4.6",
+      effort: "med",
+      fast: false,
+      watch: false,
+    });
+    expect(createAgent.mock.calls[0][0].model).toEqual({
+      id: "grok-4.6",
+      params: [
+        { id: "effort", value: "med" },
+        { id: "fast", value: "false" },
+      ],
+    });
+  });
+
   it("refuses a repo on the named cloud env", async () => {
     const createAgent = vi.fn();
     await expect(
@@ -85,5 +121,20 @@ describe("replyAction", () => {
       mode: undefined,
     });
     expect(result.run.id).toBe("run-2");
+    expect(result.followUpAccepted).toBe(true);
+    expect(result.previousRunId).toBe("run-1");
+  });
+
+  it("fails closed when model/effort/fast are set on follow-up", async () => {
+    const createRun = vi.fn();
+    await expect(
+      replyAction(runtime(vi.fn(), createRun), {
+        agentId: "bc-00000000-0000-0000-0000-000000000001",
+        prompt: "also tests",
+        effort: "med",
+        watch: false,
+      }),
+    ).rejects.toBeInstanceOf(ModelLockedError);
+    expect(createRun).not.toHaveBeenCalled();
   });
 });

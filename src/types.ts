@@ -69,6 +69,64 @@ export type CreateRunRequest = {
   mode?: ConversationMode;
 };
 
+export type ModelParam = {
+  id: string;
+  value: string;
+};
+
+export type ModelParameterDef = {
+  id: string;
+  displayName?: string;
+  values?: Array<{ value: string; displayName?: string }>;
+};
+
+export type ModelVariant = {
+  params?: ModelParam[];
+  displayName?: string;
+  description?: string;
+  isDefault?: boolean;
+};
+
+export type ModelRecord = {
+  id: string;
+  displayName?: string;
+  description?: string;
+  aliases?: string[];
+  parameters?: ModelParameterDef[];
+  variants?: ModelVariant[];
+};
+
+export type EffortLevel = "low" | "med" | "high";
+
+export type ResolvedModel = {
+  model?: string;
+  effort?: EffortLevel;
+  fast?: boolean;
+  mode?: ConversationMode;
+  id?: string;
+  params?: ModelParam[];
+};
+
+export type ArtifactRef = {
+  id: string;
+  path: string;
+  kind: string;
+  bytes?: number;
+  url?: string;
+  expiresAt?: string;
+  updatedAt?: string;
+};
+
+export type TranscriptMessage = {
+  kind: "assistant" | "thinking" | "tool_call" | "status" | "result" | "error";
+  text?: string;
+  at?: string;
+  name?: string;
+  callId?: string;
+  status?: string;
+  truncated?: boolean;
+};
+
 export type AgentRecord = {
   id: string;
   name?: string;
@@ -78,6 +136,7 @@ export type AgentRecord = {
   createdAt?: string;
   updatedAt?: string;
   latestRunId?: string;
+  model?: string | { id?: string; params?: ModelParam[] };
   repos?: Array<{ url?: string; startingRef?: string; prUrl?: string }>;
 };
 

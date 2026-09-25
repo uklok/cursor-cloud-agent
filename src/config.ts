@@ -74,7 +74,7 @@ export const pluginConfigSchema = Type.Object(
           notifyCommand: Type.Optional(
             Type.String({
               description:
-                "Shell command run when a watched run becomes terminal. Safe placeholders: {agentId} {runId} {runStatus} {url} {prUrl}. Result text is passed via CURSOR_CLOUD_RESULT.",
+                "Override the default session notify. When omitted, watch injects openclaw agent --session-key/--session-id for the originating chat. Safe placeholders: {agentId} {runId} {runStatus} {url} {prUrl}. Result text is passed via CURSOR_CLOUD_RESULT, never argv.",
             }),
           ),
         },
