@@ -11,7 +11,7 @@ auth bypass, or host-pinning failure.
 - Store a Cursor API key in git, npm, or plugin config.
 - Send `repos` together with a named Cursor-hosted cloud environment.
 - Follow redirects off `api.cursor.com`.
-- Download artifacts or permanently delete agents in the default tool set.
+- Download artifact bytes onto the coordinator, or permanently delete agents.
 - Interpolate run result text into a shell command line.
 
 ## Operational rules
@@ -29,10 +29,10 @@ auth bypass, or host-pinning failure.
 
 ## Default blast radius
 
-Default tools: launch, reply, status, cancel, watch, me, envs, agents.
+Default tools: launch, reply, status, cancel, watch, me, envs, agents, models.
 
-Optional tools (must be allowlisted): list, models.
+Optional tools (must be allowlisted): list.
 
 The local agent JSON stores `bc-…` ids, env/project/repo, and run status — not API keys or prompt text.
 
-Not shipped: archive, delete, artifact download URLs, GitHub repo listing.
+Status may include short-lived artifact download URLs. Do not log them. Not shipped: archive, delete, GitHub repo listing.

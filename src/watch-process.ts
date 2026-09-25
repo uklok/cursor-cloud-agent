@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import type { SessionRef } from "./placement.js";
 import type { Runtime } from "./runtime.js";
 
 export type WatchHandle = {
@@ -11,7 +12,7 @@ export type WatchHandle = {
 
 export function spawnWatch(
   runtime: Runtime,
-  input: { agentId: string; runId?: string },
+  input: { agentId: string; runId?: string; session?: SessionRef },
 ): WatchHandle {
   const cli = fileURLToPath(new URL("./cli.js", import.meta.url));
   const args = [cli, "watch", "--agent-id", input.agentId];
@@ -24,6 +25,8 @@ export function spawnWatch(
     env: {
       ...runtime.env,
       [runtime.config.apiKeyEnv]: runtime.env[runtime.config.apiKeyEnv] ?? "",
+      OPENCLAW_CURSOR_CLOUD_SESSION_ID: input.session?.sessionId ?? runtime.env.OPENCLAW_CURSOR_CLOUD_SESSION_ID ?? "",
+      OPENCLAW_CURSOR_CLOUD_SESSION_KEY: input.session?.sessionKey ?? runtime.env.OPENCLAW_CURSOR_CLOUD_SESSION_KEY ?? "",
       OPENCLAW_CURSOR_CLOUD_CONFIG_JSON: JSON.stringify({
         apiBaseUrl: runtime.config.apiBaseUrl,
         authScheme: runtime.config.authScheme,
@@ -33,6 +36,7 @@ export function spawnWatch(
         allowReposOnLaunch: runtime.config.allowReposOnLaunch,
         watch: runtime.config.watch,
         ledgerPath: runtime.ledgerPath,
+        catalogPath: runtime.catalogPath,
       }),
     },
   });

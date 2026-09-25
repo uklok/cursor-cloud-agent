@@ -58,4 +58,24 @@ describe("CursorCloudClient", () => {
     } satisfies Partial<CursorCloudApiError>);
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
+
+  it("lists artifacts and streams SSE events", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, { items: [{ path: "artifacts/shot.png", sizeBytes: 12 }] }))
+      .mockResolvedValueOnce(
+        new Response('event: result\ndata: {"status":"FINISHED","text":"done"}\n\n', {
+          status: 200,
+          headers: { "content-type": "text/event-stream" },
+        }),
+      );
+    const client = new CursorCloudClient({ apiKey: "k", fetch: fetchImpl });
+    const artifacts = await client.listArtifacts("bc-1");
+    expect(artifacts.items[0]?.path).toBe("artifacts/shot.png");
+    const events = [];
+    for await (const event of client.streamRun("bc-1", "run-1")) {
+      events.push(event);
+    }
+    expect(events[0]).toMatchObject({ event: "result", data: { status: "FINISHED", text: "done" } });
+  });
 });

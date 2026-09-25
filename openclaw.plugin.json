@@ -2,7 +2,7 @@
   "id": "cursor-cloud",
   "name": "Cursor Cloud",
   "description": "Launch and coordinate Cursor Cloud Agents on named saved environments. Does not run coding work on the OpenClaw host.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "configSchema": {
     "type": "object",
     "properties": {
@@ -122,7 +122,7 @@
           },
           "notifyCommand": {
             "type": "string",
-            "description": "Shell command run when a watched run becomes terminal. Safe placeholders: {agentId} {runId} {runStatus} {url} {prUrl}. Result text is passed via CURSOR_CLOUD_RESULT."
+            "description": "Override the default session notify. When omitted, watch injects openclaw agent --session-key/--session-id for the originating chat. Safe placeholders: {agentId} {runId} {runStatus} {url} {prUrl}. Result text is passed via CURSOR_CLOUD_RESULT, never argv."
           }
         },
         "additionalProperties": false
@@ -162,9 +162,6 @@
   },
   "toolMetadata": {
     "cursor_cloud_list": {
-      "optional": true
-    },
-    "cursor_cloud_models": {
       "optional": true
     }
   }

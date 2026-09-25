@@ -7,8 +7,10 @@ import type {
   CreateAgentResponse,
   CreateRunRequest,
   CreateRunResponse,
+  ModelRecord,
   RunRecord,
 } from "./types.js";
+import { consumeSse, type SseEvent } from "./sse.js";
 import { USER_AGENT } from "./version.js";
 
 export type FetchLike = typeof fetch;
@@ -119,15 +121,93 @@ export class CursorCloudClient {
     return this.request("GET", "/v1/me", { signal });
   }
 
-  async listModels(signal?: AbortSignal): Promise<{
-    items: Array<{
-      id: string;
-      displayName?: string;
-      description?: string;
-      aliases?: string[];
-    }>;
-  }> {
+  async listModels(signal?: AbortSignal): Promise<{ items: ModelRecord[] }> {
     return this.request("GET", "/v1/models", { signal });
+  }
+
+  async listArtifacts(
+    agentId: string,
+    signal?: AbortSignal,
+  ): Promise<{ items: Array<{ path?: string; sizeBytes?: number; updatedAt?: string }> }> {
+    return this.request("GET", `/v1/agents/${encodeURIComponent(agentId)}/artifacts`, { signal });
+  }
+
+  async getArtifactDownload(
+    agentId: string,
+    path: string,
+    signal?: AbortSignal,
+  ): Promise<{ url: string; expiresAt?: string }> {
+    return this.request("GET", `/v1/agents/${encodeURIComponent(agentId)}/artifacts/download`, {
+      query: { path },
+      signal,
+    });
+  }
+
+  async *streamRun(
+    agentId: string,
+    runId: string,
+    options: { lastEventId?: string; signal?: AbortSignal; timeoutMs?: number } = {},
+  ): AsyncGenerator<SseEvent> {
+    const url = new URL(
+      `/v1/agents/${encodeURIComponent(agentId)}/runs/${encodeURIComponent(runId)}/stream`,
+      `${this.apiBaseUrl}/`,
+    );
+    const headers = new Headers({
+      Accept: "text/event-stream",
+      "User-Agent": USER_AGENT,
+      Authorization: this.authorizationHeader(),
+    });
+    if (options.lastEventId) {
+      headers.set("Last-Event-ID", options.lastEventId);
+    }
+    const { signal, cleanup } = mergeTimeout(options.signal, options.timeoutMs ?? this.timeoutMs);
+    let response: Response;
+    try {
+      response = await this.fetchImpl(url, {
+        method: "GET",
+        headers,
+        signal,
+        redirect: "error",
+      });
+    } catch (error) {
+      cleanup();
+      if (error instanceof CursorCloudApiError) {
+        throw error;
+      }
+      throw new CursorCloudApiError(
+        0,
+        `Network error GET ${url.pathname}: ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error },
+      );
+    }
+    if (!response.ok) {
+      cleanup();
+      throw await apiErrorFromResponse(response, "GET", url.pathname);
+    }
+    if (!response.body) {
+      cleanup();
+      return;
+    }
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        buffer += decoder.decode(value, { stream: !done });
+        const consumed = consumeSse(buffer);
+        buffer = consumed.rest;
+        for (const event of consumed.events) {
+          yield event;
+        }
+        if (done) {
+          break;
+        }
+      }
+    } finally {
+      cleanup();
+      reader.releaseLock();
+    }
   }
 
   private async request<T>(method: string, path: string, options: RequestOptions = {}): Promise<T> {

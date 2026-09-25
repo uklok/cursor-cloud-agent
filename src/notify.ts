@@ -1,6 +1,9 @@
 import { spawn } from "node:child_process";
 import type { AgentRecord, RunRecord } from "./types.js";
 import { proofFromRun } from "./brief.js";
+import { readLedger } from "./ledger.js";
+import type { SessionRef } from "./placement.js";
+import type { Runtime } from "./runtime.js";
 
 const SAFE_PLACEHOLDERS = new Set(["agentId", "runId", "runStatus", "agentLifecycle", "url", "prUrl"]);
 const SAFE_VALUE = /^[A-Za-z0-9._~:/#@!$&*+,;=%?[\]-]*$/;
@@ -78,16 +81,71 @@ export function defaultNotifyText(values: NotifyValues): string {
   return lines.join("\n");
 }
 
+export function sessionNotifyText(values: NotifyValues): string {
+  return [
+    `[cursor-cloud] Cloud run ${values.runStatus || "update"}`,
+    `agent=${values.agentId}`,
+    `run=${values.runId}`,
+    values.url ? `url=${values.url}` : "",
+    "Call cursor_cloud_status on that agentId now. Do not launch a new agent. Watch notify is not the transcript.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+export function sessionNotifyCommand(session: SessionRef, values: NotifyValues): string | undefined {
+  const message = JSON.stringify(sessionNotifyText(values));
+  if (session.sessionKey?.trim()) {
+    return `openclaw agent --session-key ${JSON.stringify(session.sessionKey.trim())} --message ${message}`;
+  }
+  if (session.sessionId?.trim()) {
+    return `openclaw agent --session-id ${JSON.stringify(session.sessionId.trim())} --message ${message}`;
+  }
+  return undefined;
+}
+
+export function resolveNotifyCommand(
+  configured: string | undefined,
+  values: NotifyValues,
+  session: SessionRef = {},
+): string | undefined {
+  if (configured?.trim()) {
+    return configured.trim();
+  }
+  const targeted = sessionNotifyCommand(session, values);
+  if (targeted) {
+    return targeted;
+  }
+  if (process.env.OPENCLAW_NOTIFY === "1") {
+    return `openclaw message send --text ${JSON.stringify(defaultNotifyText(values))}`;
+  }
+  return undefined;
+}
+
+export function resolveWatchSession(
+  runtime: Runtime,
+  agentId: string,
+  explicit: SessionRef = {},
+): SessionRef {
+  const fromLedger = readLedger(runtime.ledgerPath).find((item) => item.agentId === agentId);
+  return {
+    sessionId:
+      explicit.sessionId?.trim() ||
+      runtime.env.OPENCLAW_CURSOR_CLOUD_SESSION_ID?.trim() ||
+      fromLedger?.sessionId,
+    sessionKey:
+      explicit.sessionKey?.trim() ||
+      runtime.env.OPENCLAW_CURSOR_CLOUD_SESSION_KEY?.trim() ||
+      fromLedger?.sessionKey,
+  };
+}
+
 export async function runNotifyCommand(
   command: string | undefined,
   values: NotifyValues,
-  options: { env?: NodeJS.ProcessEnv; spawnImpl?: typeof spawn } = {},
-): Promise<{ ran: boolean; command?: string }> {
-  const resolved =
-    command?.trim() ||
-    (process.env.OPENCLAW_NOTIFY === "1"
-      ? `openclaw message send --text ${JSON.stringify(defaultNotifyText(values))}`
-      : undefined);
+  options: { env?: NodeJS.ProcessEnv; spawnImpl?: typeof spawn; session?: SessionRef } = {},
+): Promise<{ ran: boolean; command?: string; sessionTargeted?: boolean }> {
+  const resolved = resolveNotifyCommand(command, values, options.session ?? {});
   if (!resolved) {
     return { ran: false };
   }
@@ -107,5 +165,9 @@ export async function runNotifyCommand(
       reject(new Error(`notify command exited ${code}`));
     });
   });
-  return { ran: true, command: interpolated };
+  return {
+    ran: true,
+    command: interpolated,
+    sessionTargeted: Boolean(options.session?.sessionKey || options.session?.sessionId),
+  };
 }

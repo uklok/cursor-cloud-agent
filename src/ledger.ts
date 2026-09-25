@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { defaultAgentsPath, ensureDir, legacyLedgerPath } from "./paths.js";
-import type { EnvRole } from "./types.js";
+import type { ConversationMode, EnvRole } from "./types.js";
 
 export type LedgerEntry = {
   agentId: string;
@@ -18,6 +18,15 @@ export type LedgerEntry = {
   createdAt: string;
   updatedAt: string;
   lastRunStatus?: string;
+  lastEventId?: string;
+  followUpAccepted?: boolean;
+  previousRunId?: string;
+  requestedModel?: string;
+  requestedEffort?: string;
+  requestedFast?: boolean;
+  requestedMode?: ConversationMode;
+  resolvedModelId?: string;
+  watchPid?: number;
 };
 
 const MAX_ENTRIES = 50;
@@ -57,6 +66,15 @@ export function upsertLedger(
     createdAt: previous?.createdAt ?? entry.createdAt ?? iso,
     updatedAt: iso,
     lastRunStatus: entry.lastRunStatus ?? previous?.lastRunStatus,
+    lastEventId: entry.lastEventId ?? previous?.lastEventId,
+    followUpAccepted: entry.followUpAccepted ?? previous?.followUpAccepted,
+    previousRunId: entry.previousRunId ?? previous?.previousRunId,
+    requestedModel: entry.requestedModel ?? previous?.requestedModel,
+    requestedEffort: entry.requestedEffort ?? previous?.requestedEffort,
+    requestedFast: entry.requestedFast ?? previous?.requestedFast,
+    requestedMode: entry.requestedMode ?? previous?.requestedMode,
+    resolvedModelId: entry.resolvedModelId ?? previous?.resolvedModelId,
+    watchPid: entry.watchPid ?? previous?.watchPid,
   });
   const next = items.slice(0, MAX_ENTRIES);
   ensureDir(dirname(path));

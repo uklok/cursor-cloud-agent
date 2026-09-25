@@ -21,7 +21,7 @@ Official API: [Cloud Agents API v1](https://cursor.com/docs/cloud-agent/api/endp
 One command after npm publish:
 
 ```bash
-npx -y openclaw-plugin-cursor-cloud@0.1.0 setup
+npx -y openclaw-plugin-cursor-cloud@0.2.0 setup
 ```
 
 From this checkout:
@@ -44,7 +44,7 @@ Restart the gateway. Open a new chat. Run the first proof above.
 Pinned install without `npx` (still needs the key, env registry, restart, new chat):
 
 ```bash
-openclaw plugins install npm:openclaw-plugin-cursor-cloud@0.1.0 --force --accept-capabilities
+openclaw plugins install npm:openclaw-plugin-cursor-cloud@0.2.0 --force --accept-capabilities
 ```
 
 After a ClawHub publish, use `clawhub:<org>/openclaw-plugin-cursor-cloud` the same way.
@@ -70,11 +70,13 @@ Launched `bc-…` ids are written to `~/.local/state/openclaw-cursor-cloud/agent
 
 ## Tools
 
-Always on: `cursor_cloud_launch`, `cursor_cloud_reply`, `cursor_cloud_status`, `cursor_cloud_cancel`, `cursor_cloud_watch`, `cursor_cloud_me`, `cursor_cloud_envs`, `cursor_cloud_agents`.
+Always on: `cursor_cloud_launch`, `cursor_cloud_reply`, `cursor_cloud_status`, `cursor_cloud_cancel`, `cursor_cloud_watch`, `cursor_cloud_me`, `cursor_cloud_envs`, `cursor_cloud_agents`, `cursor_cloud_models`.
 
-Optional until `setup` / `tools.alsoAllow`: `cursor_cloud_list`, `cursor_cloud_models`.
+Optional until `setup` / `tools.alsoAllow`: `cursor_cloud_list`.
 
-Not shipped: archive, delete, artifact download URLs, GitHub repository listing.
+`cursor_cloud_status` returns final/partial result, `messages[]`, and short-lived artifact download refs. It does not download artifact bytes onto the coordinator.
+
+Not shipped: archive, delete, GitHub repository listing.
 
 When to call which: `skills/cursor-cloud/SKILL.md`.
 
@@ -92,7 +94,9 @@ openclaw-cursor-cloud mcp
 
 MCP (`examples/mcp.json`) uses the same CLI config as above unless `CURSOR_CLOUD_CONFIG` is set.
 
-Watch notify: `OPENCLAW_NOTIFY=1` or `watch.notifyCommand`. Safe placeholders: `{agentId} {runId} {runStatus} {url} {prUrl}`. Result text stays in `CURSOR_CLOUD_RESULT`, not the command line.
+Watch notify: the waiter injects `openclaw agent --session-key` / `--session-id` for the originating chat. Override with `watch.notifyCommand`. Safe placeholders: `{agentId} {runId} {runStatus} {url} {prUrl}`. Result text stays in `CURSOR_CLOUD_RESULT`, not the command line. Watch is not the transcript — poll `cursor_cloud_status`.
+
+Launch: `model` + optional `effort` (`low|med|high`) + optional `fast`. Reply cannot change those (`model_locked`). Default when `effort`/`fast` are omitted: Cursor's own variant.
 
 ## Versioning
 

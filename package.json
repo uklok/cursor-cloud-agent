@@ -1,6 +1,6 @@
 {
   "name": "openclaw-plugin-cursor-cloud",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "OpenClaw plugin and CLI that launch Cursor Cloud Agents on named saved environments — without running the coding work on the coordinator host.",
   "type": "module",
   "license": "MIT",
@@ -65,7 +65,7 @@
       "minGatewayVersion": "2026.5.17"
     },
     "install": {
-      "npmSpec": "openclaw-plugin-cursor-cloud@0.1.0",
+      "npmSpec": "openclaw-plugin-cursor-cloud@0.2.0",
       "defaultChoice": "npm",
       "minHostVersion": ">=2026.5.17"
     },

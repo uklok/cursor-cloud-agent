@@ -86,13 +86,14 @@ const plugin = defineToolPlugin({
       name: "cursor_cloud_reply",
       label: "Cursor Cloud Reply",
       description:
-        "Send a follow-up prompt to an existing bc-… agent. Prefer this over launch. Returns 409 if a run is already active.",
+        "Post a new user message on an existing bc-… (never rewrite the launch prompt). 409 if a run is active. model/effort/fast fail with model_locked.",
       parameters: replyParamsSchema,
       factory({ config, toolContext }) {
         return {
           name: "cursor_cloud_reply",
           label: "Cursor Cloud Reply",
-          description: "Follow up on an existing bc-… and bind it to this OpenClaw session.",
+          description:
+            "New Cursor user message on the same bc-…. Returns followUpAccepted and the new runId. model/effort/fast → model_locked.",
           parameters: replyParamsSchema,
           execute: async (_id: string, params: Record<string, unknown>) => {
             try {
@@ -109,7 +110,7 @@ const plugin = defineToolPlugin({
       name: "cursor_cloud_status",
       label: "Cursor Cloud Status",
       description:
-        "Read durable agent lifecycle plus the latest (or specified) run. IDLE means follow-ups are accepted, not that the change succeeded — inspect proof.prUrls and run.result.",
+        "Read lifecycle, final/partial result, messages[], artifacts[], and resolved { model, effort, fast, mode }. IDLE ≠ success.",
       parameters: statusParamsSchema,
       execute: (params, config) => runTool(config, (runtime) => statusAction(runtime, params)),
     }),
@@ -125,9 +126,25 @@ const plugin = defineToolPlugin({
       name: "cursor_cloud_watch",
       label: "Cursor Cloud Watch",
       description:
-        "Start a detached waiter for a run. Returns immediately. The waiter polls until the run is terminal and then runs notifyCommand / OPENCLAW_NOTIFY. Do not block a tool turn waiting for Cloud.",
+        "Start a detached waiter. Returns immediately. On terminal status it injects a notify into this OpenClaw session. Poll cursor_cloud_status for the transcript — watch is not the result.",
       parameters: watchParamsSchema,
-      execute: (params, config) => runTool(config, (runtime) => watchAction(runtime, params)),
+      factory({ config, toolContext }) {
+        return {
+          name: "cursor_cloud_watch",
+          label: "Cursor Cloud Watch",
+          description:
+            "Detached waiter that notifies this OpenClaw session when the run is terminal. Not the transcript.",
+          parameters: watchParamsSchema,
+          execute: async (_id: string, params: Record<string, unknown>) => {
+            try {
+              const runtime = createRuntime(config);
+              return toolResult(await watchAction(runtime, params as never, sessionFrom(toolContext)));
+            } catch (error) {
+              return toolResult(formatError(error), true);
+            }
+          },
+        };
+      },
     }),
     tool({
       name: "cursor_cloud_envs",
@@ -156,9 +173,9 @@ const plugin = defineToolPlugin({
     tool({
       name: "cursor_cloud_models",
       label: "Cursor Cloud Models",
-      description: "List model ids accepted by POST /v1/agents. Optional.",
+      description:
+        "List model ids plus parameters and variants. Express Grok 4.6 Med as grok-4.6 + effort=med.",
       parameters: emptyParamsSchema,
-      optional: true,
       execute: (_params, config) => runTool(config, (runtime) => modelsAction(runtime)),
     }),
     tool({
