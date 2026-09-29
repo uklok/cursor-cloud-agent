@@ -69,7 +69,7 @@ cursor-cloud launch --env base --prompt "Smoke the env, then stop."
 cursor-cloud reply --agent-id bc-… --prompt "Continue on the same branch."
 ```
 
-Launch: `model` + optional `effort` (`low|med|high|xhigh`) + optional `fast`. `med` is sent as Cursor `medium`. Reply cannot change those (`model_locked`).
+Launch: `model` plus optional `effort` and `fast`. Effort spellings go through one alias table; the table's preferred value is what the catalog receives (`med` prefers `medium`). Reply cannot change those (`model_locked`).
 
 ## Environments and tools
 

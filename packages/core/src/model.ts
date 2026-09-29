@@ -8,18 +8,56 @@ export type ModelChoice = {
   mode?: ResolvedModel["mode"];
 };
 
-const TOOL_EFFORT: EffortLevel[] = ["low", "med", "high", "xhigh"];
-
-const EFFORT_ALIASES: Record<EffortLevel, string[]> = {
+/** Preferred catalog value first, then accepted spellings. Tool level is the key. */
+export const EFFORT_ALIASES: Record<EffortLevel, readonly string[]> = {
   low: ["low", "minimal", "min"],
   med: ["medium", "med", "mid"],
   high: ["high"],
-  xhigh: ["xhigh", "extra_high", "extrahigh", "max"],
+  xhigh: ["xhigh", "extra_high", "extrahigh", "extra-high", "max"],
 };
+
+const EFFORT_PARAM_PATTERNS = {
+  exact: ["effort", "thinking", "reasoning"],
+  suffixes: ["_effort"],
+  includes: ["thinking"],
+};
+
+export const TOOL_EFFORT_LEVELS = Object.keys(EFFORT_ALIASES) as EffortLevel[];
+
+export function effortInputValues(): string[] {
+  const seen = new Set<string>();
+  const values: string[] = [];
+  for (const aliases of Object.values(EFFORT_ALIASES)) {
+    for (const alias of aliases) {
+      if (!seen.has(alias)) {
+        seen.add(alias);
+        values.push(alias);
+      }
+    }
+  }
+  return values;
+}
+
+export function effortWireDefaults(): Record<EffortLevel, string> {
+  return Object.fromEntries(TOOL_EFFORT_LEVELS.map((level) => [level, EFFORT_ALIASES[level][0]])) as Record<
+    EffortLevel,
+    string
+  >;
+}
 
 export function isEffortParamId(id: string): boolean {
   const raw = id.trim().toLowerCase();
-  return raw === "effort" || raw === "thinking" || raw === "reasoning" || raw.endsWith("_effort") || raw.includes("thinking");
+  return (
+    EFFORT_PARAM_PATTERNS.exact.includes(raw) ||
+    EFFORT_PARAM_PATTERNS.suffixes.some((suffix) => raw.endsWith(suffix)) ||
+    EFFORT_PARAM_PATTERNS.includes.some((part) => raw.includes(part))
+  );
+}
+
+function matchEffort(raw: string): EffortLevel | undefined {
+  return (Object.entries(EFFORT_ALIASES) as [EffortLevel, readonly string[]][]).find(([, aliases]) =>
+    aliases.includes(raw),
+  )?.[0];
 }
 
 export function normalizeEffort(value?: string): EffortLevel | undefined {
@@ -27,16 +65,11 @@ export function normalizeEffort(value?: string): EffortLevel | undefined {
   if (!raw) {
     return undefined;
   }
-  if (raw === "low" || raw === "med" || raw === "high" || raw === "xhigh") {
-    return raw;
+  const match = matchEffort(raw);
+  if (match) {
+    return match;
   }
-  if (raw === "medium" || raw === "mid") {
-    return "med";
-  }
-  if (raw === "extra_high" || raw === "extrahigh" || raw === "extra-high") {
-    return "xhigh";
-  }
-  throw new ConfigError(`effort must be low, med, high, or xhigh (got '${value}')`);
+  throw new ConfigError(`effort must be ${TOOL_EFFORT_LEVELS.join(", ")} (got '${value}')`);
 }
 
 export function cursorEffortValue(effort: EffortLevel, available?: string[]): string {
@@ -60,12 +93,7 @@ export function toolEffortFromCursor(value?: string): EffortLevel | undefined {
   if (!raw) {
     return undefined;
   }
-  for (const effort of TOOL_EFFORT) {
-    if (EFFORT_ALIASES[effort].includes(raw)) {
-      return effort;
-    }
-  }
-  return undefined;
+  return matchEffort(raw);
 }
 
 export function resolvedModelHint(model: string, effort?: EffortLevel, fast?: boolean): string {
@@ -200,7 +228,7 @@ function mapFastParam(model: ModelRecord | undefined, fast: boolean): ModelParam
   return { id: param.id, value: want };
 }
 
-function pickValue(values: string[], preferred: string[]): string | undefined {
+function pickValue(values: readonly string[], preferred: readonly string[]): string | undefined {
   for (const item of preferred) {
     const hit = values.find((value) => value === item);
     if (hit) {
@@ -251,7 +279,7 @@ export function presentModel(model: ModelRecord) {
   const effortParam = model.parameters?.find((item) => isEffortParamId(item.id));
   const effortValues = effortParam?.values?.map((item) => item.value);
   const toolEffort: Partial<Record<EffortLevel, string>> = {};
-  for (const effort of TOOL_EFFORT) {
+  for (const effort of TOOL_EFFORT_LEVELS) {
     try {
       toolEffort[effort] = cursorEffortValue(effort, effortValues);
     } catch {

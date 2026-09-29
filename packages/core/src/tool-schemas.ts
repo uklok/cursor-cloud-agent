@@ -1,14 +1,19 @@
-import { Type } from "typebox";
+import { Type, type TLiteral } from "typebox";
+import { effortInputValues } from "./model.js";
 
 const mode = Type.Optional(Type.Union([Type.Literal("agent"), Type.Literal("plan")]));
-const effort = Type.Optional(
-  Type.Union(
-    [Type.Literal("low"), Type.Literal("med"), Type.Literal("medium"), Type.Literal("high"), Type.Literal("xhigh")],
-    {
-      description:
-        "Reasoning effort. Tool spelling: low|med|high|xhigh. med is sent as Cursor medium when the catalog lists medium. Grok 4.7 uses reasoning_effort.",
-    },
-  ),
+
+function effortUnion(description: string) {
+  const literals = effortInputValues().map((value) => Type.Literal(value)) as [
+    TLiteral<string>,
+    TLiteral<string>,
+    ...TLiteral<string>[],
+  ];
+  return Type.Optional(Type.Union(literals, { description }));
+}
+
+const effort = effortUnion(
+  "Effort spelling from the alias table. The table maps it to one level; that level's preferred value is what the catalog receives.",
 );
 const fast = Type.Optional(
   Type.Boolean({
@@ -81,12 +86,7 @@ export const replyParamsSchema = Type.Object(
         description: "Not accepted mid-agent. POST /runs has no model field — fails with model_locked.",
       }),
     ),
-    effort: Type.Optional(
-      Type.Union(
-        [Type.Literal("low"), Type.Literal("med"), Type.Literal("medium"), Type.Literal("high"), Type.Literal("xhigh")],
-        { description: "Not accepted mid-agent. Fails with model_locked. Launch a fresh agent to change effort." },
-      ),
-    ),
+    effort: effortUnion("Not accepted mid-agent. Fails with model_locked. Launch a fresh agent to change effort."),
     fast: Type.Optional(
       Type.Boolean({
         description: "Not accepted mid-agent. Fails with model_locked. Launch a fresh agent to change fast.",

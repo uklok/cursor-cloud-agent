@@ -4,7 +4,7 @@ import { CursorCloudApiError, FollowUpError, ModelLockedError } from "./errors.j
 import { assertAgentId, assertRunId } from "./ids.js";
 import { ensureHarvested } from "./harvest.js";
 import { agentsForTarget, readLedger, upsertLedger } from "./ledger.js";
-import { parseAgentModel, presentModel, resolveModelSelection } from "./model.js";
+import { effortWireDefaults, parseAgentModel, presentModel, resolveModelSelection, TOOL_EFFORT_LEVELS } from "./model.js";
 import { resolvePlacement, sessionLabel, type SessionRef } from "./placement.js";
 import { isWatchLocked, tryAcquireWatchLock } from "./lock.js";
 import { notifyValues, resolveWatchSession, runNotifyCommand } from "./notify.js";
@@ -432,9 +432,9 @@ export async function modelsAction(runtime: Runtime) {
   const models = await runtime.client.listModels();
   return {
     ok: true as const,
-    next: "Pass model as the item id (grok-4.6). Grok 4.6 Med is model=grok-4.6 effort=med — the tool sends Cursor value medium. effort=xhigh is Extra High. Grok 4.7 uses reasoning_effort. Omit fast to keep the model default (often fast=true). Reply cannot change these (model_locked).",
-    effort: ["low", "med", "high", "xhigh"],
-    effortAliases: { med: "medium", xhigh: "xhigh" },
+    next: "Pass model as an item id. effort spellings map through the alias table onto that model's catalog value. Omit fast to keep the model's default variant. Reply cannot change model, effort, or fast (model_locked).",
+    effort: TOOL_EFFORT_LEVELS,
+    effortAliases: effortWireDefaults(),
     fast: [false, true],
     items: (models.items ?? []).map(presentModel),
   };

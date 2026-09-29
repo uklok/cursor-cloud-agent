@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { ConfigError } from "./errors.js";
-import { decorateVariants, presentModel, resolveModelSelection, resolvedModelHint } from "./model.js";
+import {
+  decorateVariants,
+  EFFORT_ALIASES,
+  effortWireDefaults,
+  normalizeEffort,
+  presentModel,
+  resolveModelSelection,
+  resolvedModelHint,
+} from "./model.js";
 
 const grok46 = {
   id: "grok-4.6",
@@ -116,7 +124,17 @@ describe("resolveModelSelection", () => {
     ).toThrow(ConfigError);
   });
 
-  it("labels duplicate Grok 4.6 variant names from params", () => {
+  it("maps every alias in the table and uses the first alias as the wire default", () => {
+    for (const [level, aliases] of Object.entries(EFFORT_ALIASES)) {
+      for (const alias of aliases) {
+        expect(normalizeEffort(alias)).toBe(level);
+      }
+    }
+    expect(effortWireDefaults().med).toBe(EFFORT_ALIASES.med[0]);
+    expect(() => normalizeEffort("turbo")).toThrow(ConfigError);
+  });
+
+  it("labels duplicate variant names from params", () => {
     const names = decorateVariants(grok46).map((item) => item.displayName);
     expect(names).toContain("Grok 4.6 Medium");
     expect(names).toContain("Grok 4.6 Extra High Fast");
