@@ -2,7 +2,7 @@
   "id": "cursor-cloud",
   "name": "Cursor Cloud",
   "description": "Launch and coordinate Cursor Cloud Agents on named saved environments. Does not run coding work on the OpenClaw host.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "configSchema": {
     "type": "object",
     "properties": {

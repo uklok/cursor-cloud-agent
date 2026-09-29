@@ -1,0 +1,33 @@
+{
+  "name": "cursor-cloud-core",
+  "version": "0.3.0",
+  "description": "Shared Cursor Cloud Agents coordinator: API client, env harvest, launch/reply/status/watch.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.22.3"
+  },
+  "bin": {
+    "cursor-cloud": "./dist/cli.js"
+  },
+  "exports": {
+    ".": "./dist/index.js",
+    "./client": "./dist/client.js",
+    "./cli": "./dist/cli.js",
+    "./ledger": "./dist/ledger.js"
+  },
+  "files": [
+    "dist",
+    "examples",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node -e \"require('fs').chmodSync('dist/cli.js', 0o755)\""
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "typebox": "^1.1.38"
+  }
+}

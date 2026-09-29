@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
+import type { Runtime } from "cursor-cloud-core";
 import { handle } from "./mcp.js";
-import type { Runtime } from "./runtime.js";
 
 describe("mcp", () => {
   it("lists tools and calls launch through the runtime", async () => {
@@ -27,8 +27,9 @@ describe("mcp", () => {
       },
       env: { CURSOR_API_KEY: "k" },
       ledgerPath: "/tmp/ledger-unused",
+      catalogPath: "/tmp/catalog-unused",
     } as unknown as Runtime;
-    vi.spyOn(await import("./ledger.js"), "upsertLedger").mockReturnValue([]);
+    vi.spyOn(await import("../../core/src/ledger.js"), "upsertLedger").mockReturnValue([]);
     const called = await handle(
       {
         jsonrpc: "2.0",

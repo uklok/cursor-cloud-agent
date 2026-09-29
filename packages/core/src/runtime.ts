@@ -25,7 +25,7 @@ export function createRuntime(
   const apiKey = env[config.apiKeyEnv]?.trim();
   if (!apiKey) {
     throw new ConfigError(
-      `Missing ${config.apiKeyEnv}. Set it on the OpenClaw gateway environment; do not put the key in plugin config.`,
+      `Missing ${config.apiKeyEnv}. Set it on the host environment; do not put the key in config.`,
     );
   }
   return {

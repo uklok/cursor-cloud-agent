@@ -1,0 +1,36 @@
+{
+  "name": "cursor-cloud-mcp",
+  "version": "0.3.0",
+  "description": "MCP stdio server for Cursor Cloud Agents, built on cursor-cloud-core.",
+  "type": "module",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "cursor",
+    "cloud-agents"
+  ],
+  "engines": {
+    "node": ">=22.22.3"
+  },
+  "bin": {
+    "cursor-cloud-mcp": "./dist/cli.js"
+  },
+  "exports": {
+    ".": "./dist/index.js",
+    "./cli": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "examples",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node -e \"require('fs').chmodSync('dist/cli.js', 0o755)\""
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "cursor-cloud-core": "0.3.0"
+  }
+}

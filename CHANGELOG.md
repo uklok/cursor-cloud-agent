@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.0
+
+- Split into three packages: `cursor-cloud-core`, `openclaw-plugin-cursor-cloud`, and `cursor-cloud-mcp`.
+- MCP is a standalone stdio binary (`cursor-cloud-mcp`). The OpenClaw plugin remains the gateway door.
+
 ## 0.2.0
 
 - `cursor_cloud_launch` accepts `effort` (`low|med|high|xhigh`) and `fast` and sends them as `model.params`. `med` maps to Cursor `medium`; Grok 4.7 uses `reasoning_effort`.

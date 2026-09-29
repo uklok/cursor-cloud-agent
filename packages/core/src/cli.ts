@@ -14,9 +14,7 @@ import {
 } from "./actions.js";
 import { formatError } from "./errors.js";
 import { loadCliConfig } from "./load-config.js";
-import { startMcpServer } from "./mcp.js";
 import { createRuntime } from "./runtime.js";
-import { setupGateway } from "./setup.js";
 import { VERSION } from "./version.js";
 
 type Flags = Record<string, string | boolean>;
@@ -31,20 +29,6 @@ async function main(argv = process.argv.slice(2)): Promise<void> {
     console.log(VERSION);
     return;
   }
-  if (command === "mcp") {
-    await startMcpServer();
-    return;
-  }
-  if (command === "setup") {
-    const source = str(flags.source);
-    printJson(
-      await setupGateway({
-        source: source === "link" || source === "npm" || source === "skip" ? source : undefined,
-      }),
-    );
-    return;
-  }
-
   const runtime = createRuntime(loadCliConfig());
   const prompt = readPrompt(flags, rest);
 
@@ -137,7 +121,7 @@ async function main(argv = process.argv.slice(2)): Promise<void> {
       );
       return;
     default:
-      throw new Error(`Unknown command '${command}'. Try openclaw-cursor-cloud help.`);
+      throw new Error(`Unknown command '${command}'. Try cursor-cloud help.`);
   }
 }
 
@@ -227,7 +211,7 @@ function printJson(value: unknown): void {
 function printHelp(): void {
   writeFileSync(
     1,
-    `openclaw-cursor-cloud ${VERSION}
+    `cursor-cloud ${VERSION}
 
 Commands:
   launch   --env <id> --prompt <text> [--name] [--model] [--effort low|med|high|xhigh] [--fast] [--repo] [--watch]
@@ -240,11 +224,12 @@ Commands:
   me
   envs     [--refresh] [--role base|project] [--project <key>] [--repo <https-url>]
   agents   [--env <id>] [--project <key>] [--repo <https-url>]
-  mcp
-  setup    [--source link|npm|skip]
 
 Auth: CURSOR_API_KEY (or apiKeyEnv). Config: CURSOR_CLOUD_CONFIG or
 ~/.config/openclaw-cursor-cloud/config.json
+
+OpenClaw setup: openclaw-cursor-cloud setup
+MCP stdio: cursor-cloud-mcp
 `,
   );
 }

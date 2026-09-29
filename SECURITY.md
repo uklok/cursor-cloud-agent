@@ -29,7 +29,7 @@ auth bypass, or host-pinning failure.
 
 ## Default blast radius
 
-Default tools: launch, reply, status, cancel, watch, me, envs, agents, models.
+Packages: `cursor-cloud-core`, `openclaw-plugin-cursor-cloud`, `cursor-cloud-mcp`. Same default tools on plugin and MCP.
 
 Optional tools (must be allowlisted): list.
 
