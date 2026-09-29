@@ -230,7 +230,7 @@ function printHelp(): void {
     `openclaw-cursor-cloud ${VERSION}
 
 Commands:
-  launch   --env <id> --prompt <text> [--name] [--model] [--effort low|med|high] [--fast] [--repo] [--watch]
+  launch   --env <id> --prompt <text> [--name] [--model] [--effort low|med|high|xhigh] [--fast] [--repo] [--watch]
   reply    --agent-id bc-… --prompt <text> [--mode] [--watch]
   status   --agent-id bc-… [--run-id run-…]
   cancel   --agent-id bc-… [--run-id run-…]

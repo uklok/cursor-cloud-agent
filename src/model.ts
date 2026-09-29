@@ -8,20 +8,64 @@ export type ModelChoice = {
   mode?: ResolvedModel["mode"];
 };
 
-const EFFORT_PARAM_IDS = new Set(["effort", "thinking", "reasoning"]);
+const TOOL_EFFORT: EffortLevel[] = ["low", "med", "high", "xhigh"];
+
+const EFFORT_ALIASES: Record<EffortLevel, string[]> = {
+  low: ["low", "minimal", "min"],
+  med: ["medium", "med", "mid"],
+  high: ["high"],
+  xhigh: ["xhigh", "extra_high", "extrahigh", "max"],
+};
+
+export function isEffortParamId(id: string): boolean {
+  const raw = id.trim().toLowerCase();
+  return raw === "effort" || raw === "thinking" || raw === "reasoning" || raw.endsWith("_effort") || raw.includes("thinking");
+}
 
 export function normalizeEffort(value?: string): EffortLevel | undefined {
   const raw = value?.trim().toLowerCase();
   if (!raw) {
     return undefined;
   }
-  if (raw === "low" || raw === "med" || raw === "high") {
+  if (raw === "low" || raw === "med" || raw === "high" || raw === "xhigh") {
     return raw;
   }
   if (raw === "medium" || raw === "mid") {
     return "med";
   }
-  throw new ConfigError(`effort must be low, med, or high (got '${value}')`);
+  if (raw === "extra_high" || raw === "extrahigh" || raw === "extra-high") {
+    return "xhigh";
+  }
+  throw new ConfigError(`effort must be low, med, high, or xhigh (got '${value}')`);
+}
+
+export function cursorEffortValue(effort: EffortLevel, available?: string[]): string {
+  const preferred = EFFORT_ALIASES[effort];
+  if (available?.length) {
+    const hit = pickValue(
+      available.map((item) => item.toLowerCase()),
+      preferred,
+    );
+    if (!hit) {
+      throw new ConfigError(`effort '${effort}' is not in catalog values: ${available.join(", ")}`);
+    }
+    const exact = available.find((item) => item.toLowerCase() === hit);
+    return exact ?? hit;
+  }
+  return preferred[0];
+}
+
+export function toolEffortFromCursor(value?: string): EffortLevel | undefined {
+  const raw = value?.trim().toLowerCase();
+  if (!raw) {
+    return undefined;
+  }
+  for (const effort of TOOL_EFFORT) {
+    if (EFFORT_ALIASES[effort].includes(raw)) {
+      return effort;
+    }
+  }
+  return undefined;
 }
 
 export function resolvedModelHint(model: string, effort?: EffortLevel, fast?: boolean): string {
@@ -64,31 +108,11 @@ export function resolveModelSelection(
 
   const modelId = choice.model.trim();
   const listed = findModel(catalog, modelId);
-  const params: ModelParam[] = [];
-
-  if (effort) {
-    const mapped = mapEffortParam(listed, effort);
-    if (listed && !mapped) {
-      const available = (listed.parameters ?? []).map((item) => item.id).join(", ") || "none";
-      throw new ConfigError(
-        `Model '${listed.id}' has no effort/thinking parameter. Available: ${available}. Omit effort or pick a model that lists it.`,
-      );
-    }
-    if (mapped) {
-      params.push(mapped);
-    } else {
-      params.push({ id: "effort", value: effort });
-    }
-  }
-
-  if (fast !== undefined) {
-    const mapped = mapFastParam(listed, fast);
-    if (listed && !mapped) {
-      throw new ConfigError(`Model '${listed.id}' has no fast parameter. Omit fast or pick a model that lists it.`);
-    }
-    params.push(mapped ?? { id: "fast", value: fast ? "true" : "false" });
-  }
-
+  const params = buildParams(listed, effort, fast);
+  const sentEffort = toolEffortFromCursor(params.find((item) => isEffortParamId(item.id))?.value);
+  const sentFast = params.find((item) => item.id.toLowerCase() === "fast")?.value;
+  const resolvedEffort = effort ?? sentEffort;
+  const resolvedFast = fast ?? (sentFast === undefined ? undefined : sentFast === "true");
   const selection = {
     id: listed?.id ?? modelId,
     ...(params.length > 0 ? { params } : {}),
@@ -97,42 +121,76 @@ export function resolveModelSelection(
     selection,
     resolved: {
       model: selection.id,
-      effort,
-      fast,
+      effort: resolvedEffort,
+      fast: resolvedFast,
       mode: choice.mode,
-      id: resolvedModelHint(selection.id, effort, fast),
+      id: resolvedModelHint(selection.id, resolvedEffort, resolvedFast),
       params: params.length > 0 ? params : undefined,
     },
   };
 }
 
-function mapEffortParam(model: ModelRecord | undefined, effort: EffortLevel): ModelParam | undefined {
-  const param = model?.parameters?.find((item) => EFFORT_PARAM_IDS.has(item.id.toLowerCase()));
-  if (!param) {
-    const variant = matchVariant(model, effort, undefined);
-    const fromVariant = variant?.params?.find((item) => EFFORT_PARAM_IDS.has(item.id.toLowerCase()));
-    return fromVariant;
+function buildParams(
+  model: ModelRecord | undefined,
+  effort?: EffortLevel,
+  fast?: boolean,
+): ModelParam[] {
+  if (!effort && fast === undefined) {
+    return [];
   }
-  const values = (param.values ?? []).map((item) => item.value.toLowerCase());
-  const preferred =
-    effort === "med"
-      ? pickValue(values, ["med", "medium", "mid"])
-      : effort === "low"
-        ? pickValue(values, ["low", "minimal", "min"])
-        : pickValue(values, ["high", "xhigh", "max"]);
-  if (!preferred && values.length > 0) {
+
+  const effortParam = effort ? mapEffortParam(model, effort) : undefined;
+  if (effort && model && !effortParam) {
+    const available = (model.parameters ?? []).map((item) => item.id).join(", ") || "none";
     throw new ConfigError(
-      `Model '${model?.id}' effort '${effort}' is not in ${param.id} values: ${values.join(", ")}`,
+      `Model '${model.id}' has no effort/thinking parameter. Available: ${available}. Omit effort or pick a model that lists it.`,
     );
   }
-  return { id: param.id, value: preferred ?? effort };
+
+  const fastParam = fast !== undefined ? mapFastParam(model, fast) : undefined;
+  if (fast !== undefined && model && !fastParam) {
+    throw new ConfigError(`Model '${model.id}' has no fast parameter. Omit fast or pick a model that lists it.`);
+  }
+
+  if (!model) {
+    const params: ModelParam[] = [];
+    if (effort && effortParam) {
+      params.push(effortParam);
+    } else if (effort) {
+      params.push({ id: "effort", value: cursorEffortValue(effort) });
+    }
+    if (fastParam) {
+      params.push(fastParam);
+    } else if (fast !== undefined) {
+      params.push({ id: "fast", value: fast ? "true" : "false" });
+    }
+    return params;
+  }
+
+  const defaults = model.variants?.find((item) => item.isDefault)?.params ?? [];
+  const merged = new Map(defaults.map((item) => [item.id, { ...item }]));
+  if (effortParam) {
+    merged.set(effortParam.id, effortParam);
+  }
+  if (fastParam) {
+    merged.set(fastParam.id, fastParam);
+  }
+  return [...merged.values()];
+}
+
+function mapEffortParam(model: ModelRecord | undefined, effort: EffortLevel): ModelParam | undefined {
+  const param = model?.parameters?.find((item) => isEffortParamId(item.id));
+  if (!param) {
+    return undefined;
+  }
+  const values = (param.values ?? []).map((item) => item.value);
+  return { id: param.id, value: cursorEffortValue(effort, values.length > 0 ? values : undefined) };
 }
 
 function mapFastParam(model: ModelRecord | undefined, fast: boolean): ModelParam | undefined {
   const param = model?.parameters?.find((item) => item.id.toLowerCase() === "fast");
   if (!param) {
-    const variant = matchVariant(model, undefined, fast);
-    return variant?.params?.find((item) => item.id.toLowerCase() === "fast");
+    return undefined;
   }
   const want = fast ? "true" : "false";
   const values = (param.values ?? []).map((item) => item.value.toLowerCase());
@@ -140,26 +198,6 @@ function mapFastParam(model: ModelRecord | undefined, fast: boolean): ModelParam
     throw new ConfigError(`Model '${model?.id}' does not accept fast=${want}`);
   }
   return { id: param.id, value: want };
-}
-
-function matchVariant(
-  model: ModelRecord | undefined,
-  effort?: EffortLevel,
-  fast?: boolean,
-): ModelVariant | undefined {
-  if (!model?.variants?.length) {
-    return undefined;
-  }
-  return model.variants.find((variant) => {
-    const label = `${variant.displayName ?? ""} ${JSON.stringify(variant.params ?? [])}`.toLowerCase();
-    const effortOk =
-      !effort ||
-      (effort === "med"
-        ? /\bmed(ium)?\b|\bmid\b/.test(label)
-        : new RegExp(`\\b${effort}\\b`).test(label));
-    const fastOk = fast === undefined || (fast ? /\bfast\b|"true"/.test(label) : !/\bfast\b/.test(label) || /"false"/.test(label));
-    return effortOk && fastOk;
-  });
 }
 
 function pickValue(values: string[], preferred: string[]): string | undefined {
@@ -188,4 +226,74 @@ export function parseAgentModel(model: unknown): { id?: string; params?: ModelPa
     return { id, params };
   }
   return {};
+}
+
+export function decorateVariants(model: ModelRecord): ModelVariant[] {
+  const variants = model.variants ?? [];
+  const counts = new Map<string, number>();
+  for (const variant of variants) {
+    const name = cleanLabel(variant.displayName) || model.displayName || model.id;
+    counts.set(name, (counts.get(name) ?? 0) + 1);
+  }
+  return variants.map((variant) => {
+    const base = cleanLabel(variant.displayName) || model.displayName || model.id;
+    if ((counts.get(base) ?? 0) <= 1) {
+      return { ...variant, displayName: base };
+    }
+    return {
+      ...variant,
+      displayName: labelFromParams(model.displayName || model.id, variant.params, model.parameters),
+    };
+  });
+}
+
+export function presentModel(model: ModelRecord) {
+  const effortParam = model.parameters?.find((item) => isEffortParamId(item.id));
+  const effortValues = effortParam?.values?.map((item) => item.value);
+  const toolEffort: Partial<Record<EffortLevel, string>> = {};
+  for (const effort of TOOL_EFFORT) {
+    try {
+      toolEffort[effort] = cursorEffortValue(effort, effortValues);
+    } catch {
+      // Model does not list this tool effort.
+    }
+  }
+  return {
+    id: model.id,
+    displayName: model.displayName,
+    description: model.description,
+    aliases: model.aliases,
+    parameters: model.parameters,
+    variants: decorateVariants(model),
+    effortParam: effortParam?.id,
+    effortValues,
+    toolEffort,
+  };
+}
+
+export function labelFromParams(
+  base: string,
+  params: ModelParam[] | undefined,
+  definitions?: ModelRecord["parameters"],
+): string {
+  const parts = [cleanLabel(base)];
+  for (const param of params ?? []) {
+    const definition = definitions?.find((item) => item.id === param.id);
+    const value = definition?.values?.find((item) => item.value === param.value);
+    const label = cleanLabel(value?.displayName || param.value);
+    if (param.id.toLowerCase() === "fast") {
+      if (param.value === "true" && label) {
+        parts.push(label === "true" ? "Fast" : label);
+      }
+      continue;
+    }
+    if (label) {
+      parts.push(label);
+    }
+  }
+  return parts.filter(Boolean).join(" ");
+}
+
+function cleanLabel(value?: string): string {
+  return (value ?? "").replace(/\u200b/g, "").replace(/\s+/g, " ").trim();
 }

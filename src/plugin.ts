@@ -174,7 +174,7 @@ const plugin = defineToolPlugin({
       name: "cursor_cloud_models",
       label: "Cursor Cloud Models",
       description:
-        "List model ids plus parameters and variants. Express Grok 4.6 Med as grok-4.6 + effort=med.",
+        "List model ids, parameters, and labeled variants. Grok 4.6 Med is grok-4.6 + effort=med (sent as medium). xhigh is Extra High.",
       parameters: emptyParamsSchema,
       execute: (_params, config) => runTool(config, (runtime) => modelsAction(runtime)),
     }),

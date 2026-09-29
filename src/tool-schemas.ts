@@ -2,9 +2,13 @@ import { Type } from "typebox";
 
 const mode = Type.Optional(Type.Union([Type.Literal("agent"), Type.Literal("plan")]));
 const effort = Type.Optional(
-  Type.Union([Type.Literal("low"), Type.Literal("med"), Type.Literal("high")], {
-    description: "Reasoning effort. grok-4.6 + effort=med must be sent as model.params, not a separate model id.",
-  }),
+  Type.Union(
+    [Type.Literal("low"), Type.Literal("med"), Type.Literal("medium"), Type.Literal("high"), Type.Literal("xhigh")],
+    {
+      description:
+        "Reasoning effort. Tool spelling: low|med|high|xhigh. med is sent as Cursor medium when the catalog lists medium. Grok 4.7 uses reasoning_effort.",
+    },
+  ),
 );
 const fast = Type.Optional(
   Type.Boolean({
@@ -74,11 +78,20 @@ export const replyParamsSchema = Type.Object(
     mode,
     model: Type.Optional(
       Type.String({
-        description: "Not accepted mid-agent. If set, the tool fails with model_locked.",
+        description: "Not accepted mid-agent. POST /runs has no model field — fails with model_locked.",
       }),
     ),
-    effort,
-    fast,
+    effort: Type.Optional(
+      Type.Union(
+        [Type.Literal("low"), Type.Literal("med"), Type.Literal("medium"), Type.Literal("high"), Type.Literal("xhigh")],
+        { description: "Not accepted mid-agent. Fails with model_locked. Launch a fresh agent to change effort." },
+      ),
+    ),
+    fast: Type.Optional(
+      Type.Boolean({
+        description: "Not accepted mid-agent. Fails with model_locked. Launch a fresh agent to change fast.",
+      }),
+    ),
     watch: Type.Optional(Type.Boolean()),
   },
   { additionalProperties: false },

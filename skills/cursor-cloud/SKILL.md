@@ -22,7 +22,7 @@ instead.
 3. `cursor_cloud_launch` with the user prompt. Do not pass `fresh`/`env`/`agentId` unless the user already chose.
 4. If the result `phase` is `choose`, ask the user `ask.question` and the `ask.options` labels. Then recall `cursor_cloud_launch` with that option's `recall` fields.
 5. When `phase` is `launched` or `reused`, give the human `agent.id` (`bc-…`) and `agent.url`. Do not wait in this turn. Watch notify is not the transcript.
-6. For Grok 4.6 Med: `model=grok-4.6` and `effort=med`. Optional `fast=true|false` (omit = Cursor default). `cursor_cloud_models` lists parameters/variants.
+6. For Grok 4.6 Med: `model=grok-4.6` and `effort=med` (the tool sends Cursor `medium`). `effort=xhigh` is Extra High. Optional `fast=true|false` (omit = Cursor default, often fast). Do not pass model/effort/fast on `cursor_cloud_reply` (`model_locked`).
 
 ## Placement (plugin-owned)
 
