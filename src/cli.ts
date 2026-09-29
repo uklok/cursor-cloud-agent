@@ -13,6 +13,7 @@ import {
   watchForeground,
 } from "./actions.js";
 import { formatError } from "./errors.js";
+import { TOOL_EFFORT_LEVELS } from "./model.js";
 import { loadCliConfig } from "./load-config.js";
 import { startMcpServer } from "./mcp.js";
 import { createRuntime } from "./runtime.js";
@@ -230,7 +231,7 @@ function printHelp(): void {
     `openclaw-cursor-cloud ${VERSION}
 
 Commands:
-  launch   --env <id> --prompt <text> [--name] [--model] [--effort low|med|high|xhigh] [--fast] [--repo] [--watch]
+  launch   --env <id> --prompt <text> [--name] [--model] [--effort ${TOOL_EFFORT_LEVELS.join("|")}] [--fast] [--repo] [--watch]
   reply    --agent-id bc-… --prompt <text> [--mode] [--watch]
   status   --agent-id bc-… [--run-id run-…]
   cancel   --agent-id bc-… [--run-id run-…]

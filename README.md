@@ -96,7 +96,7 @@ MCP (`examples/mcp.json`) uses the same CLI config as above unless `CURSOR_CLOUD
 
 Watch notify: the waiter injects `openclaw agent --session-key` / `--session-id` for the originating chat. Override with `watch.notifyCommand`. Safe placeholders: `{agentId} {runId} {runStatus} {url} {prUrl}`. Result text stays in `CURSOR_CLOUD_RESULT`, not the command line. Watch is not the transcript — poll `cursor_cloud_status`.
 
-Launch: `model` + optional `effort` (`low|med|high|xhigh`) + optional `fast`. `med` is sent as Cursor `medium`. Reply cannot change those (`model_locked`). Default when `effort`/`fast` are omitted: Cursor's own variant (often fast).
+Launch: `model` plus optional `effort` and `fast`. Effort spellings go through one alias table; the table's preferred value is what the catalog receives (`med` prefers `medium`). Reply cannot change those (`model_locked`). Default when `effort`/`fast` are omitted: the model's own variant (often fast).
 
 ## Versioning
 
