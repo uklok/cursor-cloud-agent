@@ -1,31 +1,30 @@
 import { createInterface } from "node:readline";
 import {
   agentsAction,
+  agentsParamsSchema,
   cancelAction,
+  cancelParamsSchema,
+  createRuntime,
+  emptyParamsSchema,
   envsAction,
+  envsParamsSchema,
+  formatError,
+  jsonSchema,
   launchAction,
+  launchParamsSchema,
   listAction,
+  listParamsSchema,
+  loadCliConfig,
   meAction,
   modelsAction,
   replyAction,
-  statusAction,
-  watchAction,
-} from "./actions.js";
-import { formatError } from "./errors.js";
-import { loadCliConfig } from "./load-config.js";
-import { createRuntime, type Runtime } from "./runtime.js";
-import {
-  agentsParamsSchema,
-  cancelParamsSchema,
-  emptyParamsSchema,
-  envsParamsSchema,
-  jsonSchema,
-  launchParamsSchema,
-  listParamsSchema,
   replyParamsSchema,
+  statusAction,
   statusParamsSchema,
+  watchAction,
   watchParamsSchema,
-} from "./tool-schemas.js";
+  type Runtime,
+} from "cursor-cloud-core";
 import { PACKAGE_NAME, VERSION } from "./version.js";
 
 type JsonRpc = {

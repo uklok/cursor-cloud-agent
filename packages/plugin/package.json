@@ -1,0 +1,66 @@
+{
+  "name": "openclaw-plugin-cursor-cloud",
+  "version": "0.3.0",
+  "description": "OpenClaw plugin that launches Cursor Cloud Agents on named saved environments.",
+  "type": "module",
+  "license": "MIT",
+  "keywords": [
+    "openclaw",
+    "plugin",
+    "cursor",
+    "cloud-agents",
+    "clawhub"
+  ],
+  "engines": {
+    "node": ">=22.22.3"
+  },
+  "bin": {
+    "openclaw-cursor-cloud": "./dist/cli.js"
+  },
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "openclaw.plugin.json",
+    "README.md",
+    "skills",
+    "examples",
+    "scripts/install-gateway.sh"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node -e \"require('fs').chmodSync('dist/cli.js', 0o755)\"",
+    "plugin:build": "npm run build -w cursor-cloud-core && npm run build && openclaw plugins build --entry ./dist/index.js && node scripts/preserve-manifest-skills.mjs",
+    "plugin:validate": "npm run build -w cursor-cloud-core && npm run build && openclaw plugins validate --entry ./dist/index.js"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "openclaw": ">=2026.5.17"
+  },
+  "dependencies": {
+    "cursor-cloud-core": "0.3.0",
+    "cursor-cloud-mcp": "0.3.0"
+  },
+  "devDependencies": {
+    "openclaw": "2026.9.2"
+  },
+  "openclaw": {
+    "extensions": [
+      "./dist/index.js"
+    ],
+    "compat": {
+      "pluginApi": ">=2026.5.17",
+      "minGatewayVersion": "2026.5.17"
+    },
+    "install": {
+      "npmSpec": "openclaw-plugin-cursor-cloud@0.3.0",
+      "defaultChoice": "npm",
+      "minHostVersion": ">=2026.5.17"
+    },
+    "build": {
+      "openclawVersion": "2026.9.2"
+    }
+  }
+}
