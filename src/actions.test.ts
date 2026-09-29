@@ -21,8 +21,25 @@ function runtime(createAgent: ReturnType<typeof vi.fn>, createRun?: ReturnType<t
           {
             id: "grok-4.6",
             parameters: [
-              { id: "effort", values: [{ value: "low" }, { value: "med" }, { value: "high" }] },
+              {
+                id: "effort",
+                values: [
+                  { value: "low" },
+                  { value: "medium" },
+                  { value: "high" },
+                  { value: "xhigh" },
+                ],
+              },
               { id: "fast", values: [{ value: "true" }, { value: "false" }] },
+            ],
+            variants: [
+              {
+                isDefault: true,
+                params: [
+                  { id: "effort", value: "high" },
+                  { id: "fast", value: "true" },
+                ],
+              },
             ],
           },
         ],
@@ -88,7 +105,7 @@ describe("launchAction", () => {
     expect(createAgent.mock.calls[0][0].model).toEqual({
       id: "grok-4.6",
       params: [
-        { id: "effort", value: "med" },
+        { id: "effort", value: "medium" },
         { id: "fast", value: "false" },
       ],
     });

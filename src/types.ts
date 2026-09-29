@@ -96,7 +96,7 @@ export type ModelRecord = {
   variants?: ModelVariant[];
 };
 
-export type EffortLevel = "low" | "med" | "high";
+export type EffortLevel = "low" | "med" | "high" | "xhigh";
 
 export type ResolvedModel = {
   model?: string;
@@ -105,6 +105,7 @@ export type ResolvedModel = {
   mode?: ConversationMode;
   id?: string;
   params?: ModelParam[];
+  source?: "ledger" | "agent" | "unknown";
 };
 
 export type ArtifactRef = {

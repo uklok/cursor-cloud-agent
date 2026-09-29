@@ -4,7 +4,7 @@ import { CursorCloudApiError, FollowUpError, ModelLockedError } from "./errors.j
 import { assertAgentId, assertRunId } from "./ids.js";
 import { ensureHarvested } from "./harvest.js";
 import { agentsForTarget, readLedger, upsertLedger } from "./ledger.js";
-import { parseAgentModel, resolveModelSelection } from "./model.js";
+import { effortWireDefaults, parseAgentModel, presentModel, resolveModelSelection, TOOL_EFFORT_LEVELS } from "./model.js";
 import { resolvePlacement, sessionLabel, type SessionRef } from "./placement.js";
 import { isWatchLocked, tryAcquireWatchLock } from "./lock.js";
 import { notifyValues, resolveWatchSession, runNotifyCommand } from "./notify.js";
@@ -172,7 +172,7 @@ export async function replyAction(
   const agentId = assertAgentId(params.agentId);
   if (params.model || params.effort || params.fast !== undefined) {
     throw new ModelLockedError(
-      `Follow-up cannot change model, effort, or fast on ${agentId}. POST /v1/agents/{id}/runs has no model field. Omit those fields, or launch a fresh agent.`,
+      `Follow-up cannot change model, effort, or fast on ${agentId}. POST /v1/agents/{id}/runs has no model field. Omit those fields and reply with prompt only, or launch a fresh agent to retarget.`,
     );
   }
   const existing = await runtime.client.getAgent(agentId);
@@ -432,17 +432,11 @@ export async function modelsAction(runtime: Runtime) {
   const models = await runtime.client.listModels();
   return {
     ok: true as const,
-    next: "Pass model as the item id (grok-4.6). Express Grok 4.6 Med as model=grok-4.6 effort=med, not a separate id. fast is a boolean param. Defaults: omit effort/fast to use Cursor's variant.",
-    effort: ["low", "med", "high"],
+    next: "Pass model as an item id. effort spellings map through the alias table onto that model's catalog value. Omit fast to keep the model's default variant. Reply cannot change model, effort, or fast (model_locked).",
+    effort: TOOL_EFFORT_LEVELS,
+    effortAliases: effortWireDefaults(),
     fast: [false, true],
-    items: (models.items ?? []).map((model) => ({
-      id: model.id,
-      displayName: model.displayName,
-      description: model.description,
-      aliases: model.aliases,
-      parameters: model.parameters,
-      variants: model.variants,
-    })),
+    items: (models.items ?? []).map(presentModel),
   };
 }
 
@@ -528,13 +522,21 @@ function resolveStatusModel(
   ledger: ReturnType<typeof readLedger>[number] | undefined,
 ): ResolvedModel {
   const parsed = parseAgentModel(agent.model);
+  const model = ledger?.requestedModel ?? parsed.id;
+  const effort = (ledger?.requestedEffort as ResolvedModel["effort"]) ?? undefined;
+  const fast = ledger?.requestedFast;
+  const id = ledger?.resolvedModelId ?? parsed.id;
+  if (!model && !effort && fast === undefined && !id && !ledger?.requestedMode) {
+    return { source: "unknown" };
+  }
   return {
-    model: ledger?.requestedModel ?? parsed.id,
-    effort: ledger?.requestedEffort as ResolvedModel["effort"],
-    fast: ledger?.requestedFast,
+    model,
+    effort,
+    fast,
     mode: ledger?.requestedMode,
-    id: ledger?.resolvedModelId ?? parsed.id,
+    id,
     params: parsed.params,
+    source: ledger?.requestedModel || ledger?.resolvedModelId ? "ledger" : parsed.id ? "agent" : "unknown",
   };
 }
 
